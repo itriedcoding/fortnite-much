@@ -1,11 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   ThumbnailCategory, LightingStyle, CameraAngle, ColorGrade, Emotion, 
   AdvancedConfig, ThumbnailConfig, CompositionMode, ArtStyle, FontStyle,
   FortniteSeason, FortnitePOI, FortniteWeapon, ItemRarity, FortniteRank,
   GraphicsMode, SkinVibe, ActionType, AspectRatio
 } from '../types';
-import { MagicWandIcon, LoadingSpinner, SparklesIcon, UploadIcon, ControllerIcon, FireIcon } from './Icons';
+import { MagicWandIcon, LoadingSpinner, SparklesIcon, UploadIcon, ControllerIcon, FireIcon, ScissorsIcon } from './Icons';
 import { optimizePromptText } from '../services/gemini';
 
 interface ThumbnailFormProps {
@@ -54,11 +54,27 @@ const DEFAULT_ADVANCED: AdvancedConfig = {
     facialIntensity: 9,
 };
 
+// Skin Lab Options
+const SKIN_BASES = ['Female Default', 'Male Default', 'Robot', 'Monster', 'Anime Character', 'Banana', 'Fish'];
+const SKIN_STYLES = ['Tactical', 'Sweaty (Minimal)', 'Cyberpunk', 'Military', 'Casual Streetwear', 'Formal Suit', 'Galaxy/Cosmic', 'Armored'];
+const SKIN_COLORS = ['Black/Red', 'All Black', 'White/Gold', 'Slurp Blue', 'Galaxy Purple', 'Neon Green', 'Camo', 'Pastel Pink'];
+const SKIN_ACCESSORIES = ['Mask', 'Hoodie Up', 'Headphones', 'Sunglasses', 'Crown', 'Cape', 'Backwards Hat'];
+
 export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGenerating, statusMessage }) => {
   // Core Inputs
   const [topic, setTopic] = useState('');
   const [textOverlay, setTextOverlay] = useState('');
+  
+  // Skin Logic
   const [skinDetails, setSkinDetails] = useState('');
+  const [showSkinLab, setShowSkinLab] = useState(false);
+  const [labConfig, setLabConfig] = useState({
+      base: '',
+      style: '',
+      color: '',
+      accessories: [] as string[]
+  });
+
   const [category, setCategory] = useState<ThumbnailCategory>(ThumbnailCategory.BATTLE_ROYALE);
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [greenScreen, setGreenScreen] = useState(false);
@@ -70,8 +86,30 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
   const [isOptimizing, setIsOptimizing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Sync Skin Lab to Input string
+  useEffect(() => {
+    if (labConfig.base || labConfig.style || labConfig.color || labConfig.accessories.length > 0) {
+        const parts = [];
+        if (labConfig.base) parts.push(`${labConfig.base} Model`);
+        if (labConfig.style) parts.push(`${labConfig.style} Style`);
+        if (labConfig.color) parts.push(`${labConfig.color} Color Theme`);
+        if (labConfig.accessories.length > 0) parts.push(`Wearing ${labConfig.accessories.join(', ')}`);
+        setSkinDetails(parts.join(', '));
+    }
+  }, [labConfig]);
+
   const updateAdvanced = (key: keyof AdvancedConfig, value: any) => {
     setAdvanced(prev => ({ ...prev, [key]: value }));
+  };
+
+  const toggleAccessory = (acc: string) => {
+      setLabConfig(prev => {
+          const exists = prev.accessories.includes(acc);
+          return {
+              ...prev,
+              accessories: exists ? prev.accessories.filter(a => a !== acc) : [...prev.accessories, acc]
+          };
+      });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -254,10 +292,109 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
                     
                     {/* Secondary Inputs Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        {/* --- SKIN INPUT WITH SKIN LAB TOGGLE --- */}
                         <div className="space-y-2 group">
-                            <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-1 group-focus-within:text-white transition-colors">Hero Skin</label>
-                            <input type="text" value={skinDetails} onChange={(e) => setSkinDetails(e.target.value)} placeholder="e.g. Aura, Travis Scott" className="w-full bg-[#0a0510] border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-fortnite-blue focus:shadow-[0_0_20px_rgba(59,130,246,0.3)] outline-none transition-all" />
+                            <div className="flex justify-between items-center">
+                                <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-1 group-focus-within:text-white transition-colors">Hero Skin</label>
+                                <button type="button" onClick={() => setShowSkinLab(!showSkinLab)} className="text-[9px] font-bold text-fortnite-purple uppercase tracking-wider hover:text-white transition-colors flex items-center gap-1">
+                                    <ScissorsIcon className="w-3 h-3" />
+                                    {showSkinLab ? 'Close Lab' : '✨ Open Skin Lab'}
+                                </button>
+                            </div>
+                            
+                            <input 
+                                type="text" 
+                                value={skinDetails} 
+                                onChange={(e) => setSkinDetails(e.target.value)} 
+                                placeholder="e.g. Aura, Travis Scott" 
+                                className="w-full bg-[#0a0510] border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-fortnite-blue focus:shadow-[0_0_20px_rgba(59,130,246,0.3)] outline-none transition-all" 
+                            />
+
+                            {/* --- SKIN LAB PANEL --- */}
+                            {showSkinLab && (
+                                <div className="mt-4 p-6 bg-[#1a0b2e] rounded-2xl border border-fortnite-purple/30 shadow-xl animate-fade-in relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-2 opacity-10 pointer-events-none">
+                                        <SparklesIcon className="w-24 h-24 text-fortnite-purple" />
+                                    </div>
+                                    <h4 className="text-xs font-black text-white uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-fortnite-purple rounded-full animate-pulse"></span>
+                                        Character Designer
+                                    </h4>
+                                    
+                                    <div className="space-y-4">
+                                        {/* Base Model */}
+                                        <div className="space-y-2">
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase">Base Model</span>
+                                            <div className="flex flex-wrap gap-2">
+                                                {SKIN_BASES.map(base => (
+                                                    <button 
+                                                        key={base}
+                                                        type="button"
+                                                        onClick={() => setLabConfig({...labConfig, base})}
+                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all ${labConfig.base === base ? 'bg-fortnite-purple text-white border-fortnite-purple' : 'bg-black/30 text-slate-400 border-white/5 hover:border-white/20'}`}
+                                                    >
+                                                        {base}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Style */}
+                                        <div className="space-y-2">
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase">Outfit Style</span>
+                                            <div className="flex flex-wrap gap-2">
+                                                {SKIN_STYLES.map(style => (
+                                                    <button 
+                                                        key={style}
+                                                        type="button"
+                                                        onClick={() => setLabConfig({...labConfig, style})}
+                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all ${labConfig.style === style ? 'bg-blue-600 text-white border-blue-500' : 'bg-black/30 text-slate-400 border-white/5 hover:border-white/20'}`}
+                                                    >
+                                                        {style}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Color Theme */}
+                                        <div className="space-y-2">
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase">Color Theme</span>
+                                            <div className="flex flex-wrap gap-2">
+                                                {SKIN_COLORS.map(color => (
+                                                    <button 
+                                                        key={color}
+                                                        type="button"
+                                                        onClick={() => setLabConfig({...labConfig, color})}
+                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all ${labConfig.color === color ? 'bg-fortnite-gold text-black border-fortnite-gold' : 'bg-black/30 text-slate-400 border-white/5 hover:border-white/20'}`}
+                                                    >
+                                                        {color}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Accessories */}
+                                        <div className="space-y-2">
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase">Accessories (Toggle)</span>
+                                            <div className="flex flex-wrap gap-2">
+                                                {SKIN_ACCESSORIES.map(acc => (
+                                                    <button 
+                                                        key={acc}
+                                                        type="button"
+                                                        onClick={() => toggleAccessory(acc)}
+                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all ${labConfig.accessories.includes(acc) ? 'bg-green-600 text-white border-green-500' : 'bg-black/30 text-slate-400 border-white/5 hover:border-white/20'}`}
+                                                    >
+                                                        {acc}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
+
                         <div className="space-y-2 relative group">
                              <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-1 group-focus-within:text-white transition-colors">3D Text Overlay</label>
                              <input type="text" value={textOverlay} onChange={(e) => setTextOverlay(e.target.value)} placeholder="e.g. SECRET!" className="w-full bg-[#0a0510] border border-white/10 rounded-2xl px-6 py-4 text-white font-black focus:border-fortnite-gold focus:shadow-[0_0_20px_rgba(251,191,36,0.3)] outline-none transition-all tracking-wide" />
