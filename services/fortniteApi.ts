@@ -19,13 +19,10 @@ export const fetchDailyShop = async (): Promise<ShopItem[]> => {
         });
         
         if (!response.ok) {
-            console.error(`Shop API Error: ${response.status}`);
-            const text = await response.text();
-            console.error('Shop Error Body:', text);
-            throw new Error(`Shop API Error: ${response.status}`);
+            console.warn(`Shop API Status: ${response.status}`);
+            return [];
         }
 
-        // Check content type before parsing
         const contentType = response.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
             console.error("Shop API returned non-JSON response");
@@ -149,26 +146,17 @@ export const fetchDailyShop = async (): Promise<ShopItem[]> => {
  */
 export const fetchCurrentMap = async (): Promise<MapData | null> => {
     try {
-        // Switch to STATS_API_BASE (fortnite-api.com) and COM_API_KEY
         const response = await fetch(`${STATS_API_BASE}/v1/map`, { 
             headers: { 'Authorization': COM_API_KEY } 
         });
         
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`Map API Error: ${response.status}`, errorText);
-            return null;
-        }
-
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            console.error("Map API returned non-JSON response", await response.text());
+            console.warn(`Map API Status: ${response.status}`);
             return null;
         }
 
         const data = await response.json();
 
-        // Check for 'status' and 'data' fields consistent with fortnite-api.com response structure
         if (data.status === 200 && data.data && data.data.images) {
             return {
                 images: {
@@ -193,18 +181,38 @@ export const fetchPlayerStats = async (username: string): Promise<PlayerStats | 
         const response = await fetch(`${STATS_API_BASE}/v2/stats/br/v2?name=${encodeURIComponent(username)}`, { 
             headers: { 'Authorization': COM_API_KEY } 
         });
+
+        // Handle specific HTTP errors for better UX
+        if (response.status === 404) {
+            throw new Error(`Player '${username}' not found. Please check spelling or try their Epic ID.`);
+        }
+        if (response.status === 403) {
+            throw new Error(`The profile for '${username}' is private. They must enable "Show on Career Leaderboard" in Fortnite settings.`);
+        }
+        
+        if (!response.ok) {
+             const text = await response.text();
+             // Try to parse error from body
+             try {
+                 const errData = JSON.parse(text);
+                 throw new Error(errData.error || `API Error: ${response.status}`);
+             } catch {
+                 throw new Error(`API Error: ${response.status}`);
+             }
+        }
+
         const data = await response.json();
 
         if (data.status === 200 && data.data) {
             return data.data; 
-        } else if (data.status === 403) {
-            throw new Error(`The profile for '${username}' is private. Users must enable "Show on Career Leaderboard" in Fortnite settings.`);
-        } else if (data.status === 404) {
-            throw new Error(`Player '${username}' not found. Please check spelling.`);
-        }
-        throw new Error(data.error || 'Unknown error');
+        } 
+        
+        throw new Error(data.error || 'Unknown error occurred while fetching stats.');
     } catch (error: any) {
-        console.error("Failed to fetch player stats", error);
+        // Suppress console errors for expected user-errors (404/403) to keep console clean
+        if (!error.message.includes('not found') && !error.message.includes('private')) {
+            console.error("Failed to fetch player stats", error);
+        }
         throw error;
     }
 };
@@ -218,6 +226,9 @@ export const searchCosmetic = async (name: string): Promise<CosmeticItem | null>
         const response = await fetch(`${STATS_API_BASE}/v2/cosmetics/br/search?name=${encodeURIComponent(name)}&type=outfit`, {
             headers: { 'Authorization': COM_API_KEY }
         });
+        
+        if (response.status === 404) return null;
+
         const data = await response.json();
 
         if (data.status === 200 && data.data) {
@@ -225,7 +236,7 @@ export const searchCosmetic = async (name: string): Promise<CosmeticItem | null>
         }
         return null;
     } catch (error) {
-        console.error("Failed to search cosmetic", error);
+        // Silent fail for cosmetic search typeahead
         return null;
     }
 }
@@ -238,6 +249,9 @@ export const fetchNews = async (): Promise<NewsItem[]> => {
         const response = await fetch(`${STATS_API_BASE}/v2/news/br`, { 
             headers: { 'Authorization': COM_API_KEY } 
         });
+        
+        if (!response.ok) return [];
+
         const data = await response.json();
 
         if (data.status === 200 && data.data) {

@@ -18,6 +18,11 @@ export const MapViewer: React.FC = () => {
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const mapRef = useRef<HTMLDivElement>(null);
 
+    // Advanced Tools
+    const [toolMode, setToolMode] = useState<'none' | 'measure' | 'storm'>('none');
+    const [measurePoints, setMeasurePoints] = useState<{x: number, y: number}[]>([]);
+    const [stormCircle, setStormCircle] = useState<{x: number, y: number, r: number} | null>(null);
+
     useEffect(() => {
         const loadMap = async () => {
             setLoading(true);
@@ -50,10 +55,24 @@ export const MapViewer: React.FC = () => {
 
     const handleZoom = (delta: number) => {
         setZoom(prev => Math.min(Math.max(prev + delta, 1), 4));
-        if (zoom + delta <= 1) setPan({ x: 0, y: 0 }); // Reset pan if zoomed out
+        if (zoom + delta <= 1) setPan({ x: 0, y: 0 }); 
     };
 
     const handleMouseDown = (e: React.MouseEvent) => {
+        if (toolMode === 'measure') {
+            const rect = mapRef.current?.getBoundingClientRect();
+            if (rect) {
+                const x = (e.clientX - rect.left - pan.x) / zoom;
+                const y = (e.clientY - rect.top - pan.y) / zoom;
+                
+                setMeasurePoints(prev => {
+                    if (prev.length >= 2) return [{x, y}];
+                    return [...prev, {x, y}];
+                });
+            }
+            return;
+        }
+
         if (zoom > 1) {
             setIsDragging(true);
             setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
@@ -61,12 +80,11 @@ export const MapViewer: React.FC = () => {
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
-        if (isDragging && zoom > 1) {
+        if (isDragging && zoom > 1 && toolMode === 'none') {
             e.preventDefault();
             const newX = e.clientX - dragStart.x;
             const newY = e.clientY - dragStart.y;
             
-            // Limit pan based on zoom level (approximate boundaries)
             const limit = (zoom - 1) * 300; 
             setPan({
                 x: Math.min(Math.max(newX, -limit), limit),
@@ -76,6 +94,29 @@ export const MapViewer: React.FC = () => {
     };
 
     const handleMouseUp = () => setIsDragging(false);
+
+    const generateStorm = () => {
+        const x = Math.random() * 1000; 
+        const y = Math.random() * 1000;
+        const r = 100 + Math.random() * 200;
+        setStormCircle({x, y, r});
+        setToolMode('storm');
+    }
+
+    const calculateDistance = () => {
+        if (measurePoints.length !== 2) return 0;
+        const dx = measurePoints[1].x - measurePoints[0].x;
+        const dy = measurePoints[1].y - measurePoints[0].y;
+        return Math.round(Math.sqrt(dx*dx + dy*dy) * 2.5); // 2.5 arbitrary scale factor
+    }
+
+    const getTravelTime = (distance: number, type: 'run' | 'car' | 'fly') => {
+        const speeds = { run: 4.1, car: 22, fly: 35 }; // m/s
+        const seconds = distance / speeds[type];
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.round(seconds % 60);
+        return `${mins}m ${secs}s`;
+    }
 
     return (
         <div className="w-full max-w-[1600px] mx-auto animate-fade-in-up pb-20">
@@ -112,9 +153,17 @@ export const MapViewer: React.FC = () => {
                     <div className="lg:col-span-8 bg-[#0a0510] border border-white/10 rounded-[3rem] p-4 relative overflow-hidden shadow-2xl group">
                         
                         {/* Map Controls Overlay */}
-                        <div className="absolute top-8 left-8 z-20 flex flex-col gap-2">
-                            <button onClick={() => setViewMode('pois')} className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border backdrop-blur-md ${viewMode === 'pois' ? 'bg-green-500 text-black border-green-500' : 'bg-black/60 text-slate-400 border-white/10 hover:text-white'}`}>Tactical View</button>
-                            <button onClick={() => setViewMode('blank')} className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border backdrop-blur-md ${viewMode === 'blank' ? 'bg-green-500 text-black border-green-500' : 'bg-black/60 text-slate-400 border-white/10 hover:text-white'}`}>Clean Feed</button>
+                        <div className="absolute top-8 left-8 z-20 flex flex-wrap gap-2 max-w-[70%]">
+                            <button onClick={() => setViewMode('pois')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border backdrop-blur-md ${viewMode === 'pois' ? 'bg-green-500 text-black border-green-500' : 'bg-black/60 text-slate-400 border-white/10 hover:text-white'}`}>Tactical View</button>
+                            <button onClick={() => setViewMode('blank')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border backdrop-blur-md ${viewMode === 'blank' ? 'bg-green-500 text-black border-green-500' : 'bg-black/60 text-slate-400 border-white/10 hover:text-white'}`}>Clean Feed</button>
+                            
+                            {/* New Tools */}
+                            <button onClick={() => { setToolMode(toolMode === 'measure' ? 'none' : 'measure'); setMeasurePoints([]); }} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border backdrop-blur-md flex items-center gap-2 ${toolMode === 'measure' ? 'bg-yellow-500 text-black border-yellow-500' : 'bg-black/60 text-slate-400 border-white/10 hover:text-white'}`}>
+                                <span>📏 Measure</span>
+                            </button>
+                            <button onClick={generateStorm} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border backdrop-blur-md flex items-center gap-2 ${toolMode === 'storm' ? 'bg-purple-500 text-white border-purple-500' : 'bg-black/60 text-slate-400 border-white/10 hover:text-white'}`}>
+                                <span>⛈️ Storm Sim</span>
+                            </button>
                         </div>
 
                         {/* Zoom Controls */}
@@ -128,11 +177,19 @@ export const MapViewer: React.FC = () => {
                         <div className="absolute bottom-8 left-8 z-20 font-mono text-[10px] text-green-500 bg-black/80 px-4 py-2 rounded-lg border border-green-500/20 pointer-events-none">
                             <p>ZOOM: {(zoom * 100).toFixed(0)}%</p>
                             <p>PAN: {pan.x.toFixed(0)}, {pan.y.toFixed(0)}</p>
+                            {toolMode === 'measure' && measurePoints.length === 2 && (
+                                <div className="mt-2 pt-2 border-t border-white/10 space-y-1">
+                                    <p className="text-yellow-400 font-bold">DIST: {calculateDistance()}m</p>
+                                    <p className="text-slate-300">🏃 RUN: {getTravelTime(calculateDistance(), 'run')}</p>
+                                    <p className="text-slate-300">🚗 CAR: {getTravelTime(calculateDistance(), 'car')}</p>
+                                    <p className="text-slate-300">🚁 FLY: {getTravelTime(calculateDistance(), 'fly')}</p>
+                                </div>
+                            )}
                         </div>
 
                         {/* The Map Image */}
                         <div 
-                            className="relative aspect-square w-full rounded-[2.5rem] overflow-hidden border border-white/5 bg-[#05020a] cursor-move"
+                            className={`relative aspect-square w-full rounded-[2.5rem] overflow-hidden border border-white/5 bg-[#05020a] ${toolMode === 'measure' ? 'cursor-crosshair' : 'cursor-move'}`}
                             ref={mapRef}
                             onMouseDown={handleMouseDown}
                             onMouseMove={handleMouseMove}
@@ -143,13 +200,49 @@ export const MapViewer: React.FC = () => {
                              <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(34,197,94,0.1)_50%,transparent_100%)] bg-[length:100%_4px] pointer-events-none z-10 opacity-30"></div>
                              <div className="absolute top-0 left-0 w-full h-[5px] bg-green-500/50 shadow-[0_0_20px_#22c55e] animate-[scan_4s_linear_infinite] z-20 pointer-events-none"></div>
 
-                             <img 
-                                src={viewMode === 'pois' ? mapData.images.pois : mapData.images.blank} 
-                                alt="Fortnite Map" 
-                                className="w-full h-full object-cover transition-transform duration-100 ease-out will-change-transform"
-                                style={{ transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)` }}
-                                draggable={false}
-                             />
+                             <div style={{ transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`, width: '100%', height: '100%', position: 'relative' }}>
+                                 <img 
+                                    src={viewMode === 'pois' ? mapData.images.pois : mapData.images.blank} 
+                                    alt="Fortnite Map" 
+                                    className="w-full h-full object-cover transition-transform duration-100 ease-out will-change-transform"
+                                    draggable={false}
+                                 />
+                                 
+                                 {/* Storm Overlay */}
+                                 {toolMode === 'storm' && stormCircle && (
+                                     <div 
+                                        className="absolute rounded-full border-4 border-purple-500 bg-purple-500/20"
+                                        style={{
+                                            left: `${(stormCircle.x / 1000) * 100}%`, // Rough approx placement
+                                            top: `${(stormCircle.y / 1000) * 100}%`,
+                                            width: `${stormCircle.r}px`,
+                                            height: `${stormCircle.r}px`,
+                                            transform: 'translate(-50%, -50%)',
+                                            boxShadow: '0 0 50px #a855f7'
+                                        }}
+                                     ></div>
+                                 )}
+
+                                 {/* Measure Lines */}
+                                 {toolMode === 'measure' && measurePoints.map((pt, i) => (
+                                     <div key={i} className="absolute w-2 h-2 bg-yellow-400 rounded-full z-30" style={{left: pt.x, top: pt.y, transform: 'translate(-50%, -50%)'}}></div>
+                                 ))}
+                                 
+                                 {/* Draw line between points */}
+                                 {toolMode === 'measure' && measurePoints.length === 2 && (
+                                     <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
+                                         <line 
+                                            x1={measurePoints[0].x} 
+                                            y1={measurePoints[0].y} 
+                                            x2={measurePoints[1].x} 
+                                            y2={measurePoints[1].y} 
+                                            stroke="#facc15" 
+                                            strokeWidth="2" 
+                                            strokeDasharray="5,5"
+                                         />
+                                     </svg>
+                                 )}
+                             </div>
                         </div>
                     </div>
 
@@ -209,12 +302,6 @@ export const MapViewer: React.FC = () => {
                     </div>
                 </div>
             )}
-            <style>{`
-                @keyframes scan { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
-                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: #1a0b2e; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: #22c55e; border-radius: 4px; }
-            `}</style>
         </div>
     );
 }

@@ -1,11 +1,18 @@
+
 import React, { useEffect, useState } from 'react';
 import { NewsItem } from '../types';
 import { fetchNews } from '../services/fortniteApi';
-import { LoadingSpinner, NewsIcon } from './Icons';
+import { summarizeNews } from '../services/gemini';
+import { LoadingSpinner, NewsIcon, RobotIcon } from './Icons';
 
 export const NewsFeed: React.FC = () => {
     const [news, setNews] = useState<NewsItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [speaking, setSpeaking] = useState(false);
+    
+    // AI Summaries State
+    const [summaries, setSummaries] = useState<Record<string, string>>({});
+    const [loadingSummary, setLoadingSummary] = useState<string | null>(null);
 
     useEffect(() => {
         const loadNews = async () => {
@@ -24,6 +31,45 @@ export const NewsFeed: React.FC = () => {
             year: 'numeric'
         });
     };
+
+    const calculateReadTime = (text: string) => {
+        const wpm = 200;
+        const words = text.trim().split(/\s+/).length;
+        const time = Math.ceil(words / wpm);
+        return `${time} min read`;
+    }
+
+    const highlightKeywords = (text: string) => {
+        const keywords = ['Free', 'Event', 'Downtime', 'Update', 'New', 'Patch', 'Live'];
+        let formatted = text;
+        keywords.forEach(key => {
+            const regex = new RegExp(`\\b${key}\\b`, 'gi');
+            formatted = formatted.replace(regex, `<span class="text-fortnite-gold font-black">${key}</span>`);
+        });
+        return <span dangerouslySetInnerHTML={{ __html: formatted }} />;
+    };
+
+    const toggleSpeech = (item: NewsItem) => {
+        if (speaking) {
+            window.speechSynthesis.cancel();
+            setSpeaking(false);
+        } else {
+            const utterance = new SpeechSynthesisUtterance(`${item.title}. ${item.body}`);
+            utterance.rate = 1.1;
+            utterance.pitch = 0.9;
+            utterance.onend = () => setSpeaking(false);
+            window.speechSynthesis.speak(utterance);
+            setSpeaking(true);
+        }
+    }
+
+    const handleSummarize = async (item: NewsItem) => {
+        if (summaries[item.id]) return; // Already summarized
+        setLoadingSummary(item.id);
+        const summary = await summarizeNews(item.body);
+        setSummaries(prev => ({...prev, [item.id]: summary}));
+        setLoadingSummary(null);
+    }
 
     return (
         <div className="w-full max-w-7xl mx-auto animate-fade-in-up pb-20">
@@ -74,22 +120,33 @@ export const NewsFeed: React.FC = () => {
                                 />
                             )}
 
-                            {/* Tags */}
+                            {/* Tags & Controls */}
                             <div className="absolute top-6 left-6 z-20 flex gap-2">
                                 <span className="bg-red-600 text-white text-[10px] font-black uppercase px-3 py-1.5 rounded-lg shadow-lg tracking-widest backdrop-blur-md">
                                     {item.tabTitle || 'NEWS'}
                                 </span>
-                                {item.video && (
-                                    <span className="bg-white/10 text-white text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border border-white/20 backdrop-blur-md flex items-center gap-1">
-                                        ▶ Video
-                                    </span>
-                                )}
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); toggleSpeech(item); }}
+                                    className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/20 transition-all ${speaking ? 'bg-green-500 text-black animate-pulse' : 'bg-black/40 text-white hover:bg-white/20'}`}
+                                >
+                                    {speaking ? '🔊 Playing...' : '🔈 Listen'}
+                                </button>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); handleSummarize(item); }}
+                                    className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/20 transition-all flex items-center gap-2 ${summaries[item.id] ? 'bg-purple-600 text-white border-purple-500' : 'bg-black/40 text-white hover:bg-white/20'}`}
+                                >
+                                    {loadingSummary === item.id ? <LoadingSpinner className="w-3 h-3" /> : <RobotIcon className="w-3 h-3" />}
+                                    <span>{summaries[item.id] ? 'AI Summary' : 'Summarize'}</span>
+                                </button>
                             </div>
                             
                             {/* Date */}
-                            <div className="absolute top-6 right-6 z-20">
+                            <div className="absolute top-6 right-6 z-20 flex flex-col items-end gap-1">
                                 <span className="text-xs font-bold text-slate-300 bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
                                     {formatDate(item.date)}
+                                </span>
+                                <span className="text-[9px] font-bold text-slate-400 bg-black/50 px-2 py-0.5 rounded-full backdrop-blur-sm">
+                                    {calculateReadTime(item.body)}
                                 </span>
                             </div>
 
@@ -98,9 +155,22 @@ export const NewsFeed: React.FC = () => {
                                 <h3 className={`font-black italic text-white uppercase leading-[0.9] mb-4 drop-shadow-xl ${index === 0 ? 'text-5xl md:text-6xl' : 'text-3xl'}`}>
                                     {item.title}
                                 </h3>
-                                <p className={`text-slate-300 font-medium drop-shadow-md leading-relaxed ${index === 0 ? 'text-lg line-clamp-4' : 'text-sm line-clamp-3'}`}>
-                                    {item.body}
-                                </p>
+                                
+                                {summaries[item.id] ? (
+                                    <div className="bg-purple-600/20 border border-purple-500/50 p-4 rounded-xl mb-4 animate-fade-in">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <RobotIcon className="w-4 h-4 text-purple-400" />
+                                            <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Gemini Intel</span>
+                                        </div>
+                                        <p className="text-white font-bold italic text-sm leading-relaxed">
+                                            "{summaries[item.id]}"
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <p className={`text-slate-300 font-medium drop-shadow-md leading-relaxed ${index === 0 ? 'text-lg line-clamp-4' : 'text-sm line-clamp-3'}`}>
+                                        {highlightKeywords(item.body)}
+                                    </p>
+                                )}
                                 
                                 <div className="mt-6 w-full h-[1px] bg-gradient-to-r from-red-500/50 to-transparent"></div>
                             </div>

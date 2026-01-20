@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   ThumbnailCategory, LightingStyle, CameraAngle, ColorGrade, Emotion, 
@@ -13,6 +14,14 @@ interface ThumbnailFormProps {
   isGenerating: boolean;
   statusMessage: string;
 }
+
+const EXAMPLE_PROMPTS = [
+    "POV: You just hit a 360 no-scope to win the FNCS finals.",
+    "The Cube Queen returns and destroys Tilted Towers.",
+    "New Mythic Shotgun is broken! (200 damage headshot).",
+    "Default skin holding the Victory Crown in a vault full of gold.",
+    "1v1 Build Fight against a sweat in Creative Mode."
+];
 
 const getRandomEnum = <T extends object>(anEnum: T): T[keyof T] => {
   const enumValues = Object.values(anEnum);
@@ -204,16 +213,16 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
 
   const renderSelect = (label: string, value: any, options: object, key: keyof AdvancedConfig) => (
     <div className="space-y-2 group">
-      <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest group-hover:text-fortnite-gold transition-colors ml-1">{label}</label>
+      <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest group-hover:text-strawberry-500 transition-colors ml-1">{label}</label>
       <div className="relative">
         <select 
             value={value} 
             onChange={(e) => updateAdvanced(key, e.target.value)} 
-            className="w-full bg-[#0a0510] border border-white/10 rounded-xl px-4 py-3.5 text-xs text-white focus:border-fortnite-purple focus:ring-1 focus:ring-fortnite-purple focus:shadow-[0_0_20px_rgba(126,34,206,0.3)] outline-none transition-all hover:bg-white/5 appearance-none font-bold cursor-pointer"
+            className="w-full bg-void-800 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-strawberry-500 focus:ring-1 focus:ring-strawberry-500 focus:shadow-[0_0_20px_rgba(255,23,68,0.3)] outline-none transition-all hover:bg-void-700 appearance-none font-bold cursor-pointer"
         >
-            {Object.entries(options).map(([k, v]) => <option key={k} value={v} className="bg-[#1a0b2e]">{v}</option>)}
+            {Object.entries(options).map(([k, v]) => <option key={k} value={v} className="bg-void-900">{v}</option>)}
         </select>
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">▼</div>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500 text-[10px]">▼</div>
       </div>
     </div>
   );
@@ -222,34 +231,34 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
     <div className="w-full max-w-[1400px] mx-auto space-y-12 animate-fade-in-up">
       {/* Hero Title Section */}
       <div className="text-center space-y-6 relative mb-16">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[300px] bg-gradient-to-r from-fortnite-purple/20 via-blue-500/10 to-fortnite-gold/20 blur-[120px] -z-10 rounded-full animate-pulse-slow"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[300px] bg-gradient-to-r from-strawberry-600/20 via-purple-900/10 to-strawberry-900/20 blur-[120px] -z-10 rounded-full animate-pulse-slow"></div>
         
-        <h2 className="text-7xl sm:text-9xl font-display text-white italic tracking-wider drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] stroke-black z-10 relative flex flex-col sm:flex-row items-center justify-center gap-4" style={{ WebkitTextStroke: '3px black' }}>
+        <h2 className="text-7xl sm:text-9xl font-display text-white italic tracking-wider drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] stroke-black z-10 relative flex flex-col sm:flex-row items-center justify-center gap-4" style={{ WebkitTextStroke: '2px black' }}>
           <span>CREATE</span>
-          <span className="text-transparent bg-clip-text bg-gradient-to-b from-fortnite-gold via-yellow-300 to-orange-500 drop-shadow-[0_0_30px_rgba(251,191,36,0.6)]">HYPE</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-b from-strawberry-400 to-strawberry-600 drop-shadow-[0_0_30px_rgba(255,23,68,0.6)]">HYPE</span>
         </h2>
         
         <div className="flex justify-center gap-4">
-            <span className="px-6 py-2 rounded-full bg-black/60 border border-white/10 text-[10px] font-black uppercase tracking-[0.3em] text-fortnite-blue backdrop-blur-md shadow-lg">
+            <span className="px-6 py-2 rounded-full bg-black/60 border border-strawberry-500/20 text-[10px] font-black uppercase tracking-[0.3em] text-white backdrop-blur-md shadow-lg">
                 Chapter 6 Season 1
             </span>
-            <span className="px-6 py-2 rounded-full bg-black/60 border border-white/10 text-[10px] font-black uppercase tracking-[0.3em] text-fortnite-gold backdrop-blur-md shadow-lg">
+            <span className="px-6 py-2 rounded-full bg-black/60 border border-strawberry-500/20 text-[10px] font-black uppercase tracking-[0.3em] text-strawberry-400 backdrop-blur-md shadow-lg">
                 UE 5.5 Render
             </span>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="relative z-10">
-        <div className="bg-[#130b1c]/80 backdrop-blur-3xl rounded-[3rem] border border-white/5 shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden">
+        <div className="bg-void-900/80 backdrop-blur-3xl rounded-[3rem] border border-white/5 shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden">
             {/* Cosmetic Header Bar */}
-            <div className="h-14 bg-[#0a0510] border-b border-white/5 flex items-center justify-between px-8">
+            <div className="h-14 bg-black border-b border-white/5 flex items-center justify-between px-8">
                 <div className="flex gap-2">
                     <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-white/10 border border-white/20"></div>
+                    <div className="w-3 h-3 rounded-full bg-white/10 border border-white/20"></div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">QUICK PRESETS:</span>
+                    <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">QUICK PRESETS:</span>
                     <div className="flex gap-2">
                          <button type="button" onClick={() => applyPreset('viral')} className="text-[9px] font-bold bg-yellow-500/10 text-yellow-500 px-3 py-1 rounded border border-yellow-500/20 hover:bg-yellow-500 hover:text-black transition-colors uppercase">VIRAL</button>
                          <button type="button" onClick={() => applyPreset('competitive')} className="text-[9px] font-bold bg-blue-500/10 text-blue-500 px-3 py-1 rounded border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-colors uppercase">SWEAT</button>
@@ -270,23 +279,37 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
                     <div className="space-y-3 group">
                         <div className="flex justify-between items-end px-1">
                             <label className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 drop-shadow-md">
-                                 <FireIcon className="w-5 h-5 text-orange-500" /> 
-                                 <span className="bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">Video Concept</span>
+                                 <FireIcon className="w-5 h-5 text-strawberry-500" /> 
+                                 <span className="text-zinc-300">Video Concept</span>
                             </label>
-                            <button type="button" onClick={handleMagicOptimize} disabled={isOptimizing} className="text-[10px] font-black text-fortnite-gold hover:text-white transition-all flex items-center gap-2 bg-fortnite-gold/10 hover:bg-fortnite-gold px-4 py-2 rounded-lg border border-fortnite-gold/30 hover:scale-105">
+                            <button type="button" onClick={handleMagicOptimize} disabled={isOptimizing} className="text-[10px] font-black text-strawberry-400 hover:text-white transition-all flex items-center gap-2 bg-strawberry-900/20 hover:bg-strawberry-600 px-4 py-2 rounded-lg border border-strawberry-500/30 hover:scale-105">
                                 {isOptimizing ? <LoadingSpinner className="w-3 h-3"/> : <MagicWandIcon className="w-3 h-3"/>} 
                                 <span>AI ENHANCE</span>
                             </button>
                         </div>
                         <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-r from-fortnite-purple to-fortnite-blue blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 rounded-3xl"></div>
+                            <div className="absolute inset-0 bg-gradient-to-r from-strawberry-600 to-purple-900 blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 rounded-3xl"></div>
                             <textarea
                                 value={topic}
                                 onChange={(e) => setTopic(e.target.value)}
                                 placeholder="Describe your video idea... (e.g. 'I Won a Game with 0 Kills')"
-                                className="relative w-full bg-[#0a0510] border-2 border-white/10 rounded-3xl px-8 py-6 text-white focus:border-fortnite-purple focus:shadow-[0_0_30px_rgba(126,34,206,0.2)] transition-all h-40 text-2xl font-bold placeholder:text-slate-700 resize-none leading-relaxed outline-none z-10 selection:bg-fortnite-purple selection:text-white"
+                                className="relative w-full bg-void-800 border-2 border-white/10 rounded-3xl px-8 py-6 text-white focus:border-strawberry-500 focus:shadow-[0_0_30px_rgba(255,23,68,0.2)] transition-all h-40 text-2xl font-bold placeholder:text-zinc-700 resize-none leading-relaxed outline-none z-10 selection:bg-strawberry-500 selection:text-white"
                                 required
                             />
+                        </div>
+
+                         {/* Quick Prompts */}
+                         <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                            {EXAMPLE_PROMPTS.map((prompt, i) => (
+                                <button
+                                    key={i}
+                                    type="button"
+                                    onClick={() => setTopic(prompt)}
+                                    className="shrink-0 px-4 py-2 bg-void-800 border border-white/5 rounded-full text-[10px] text-zinc-400 hover:text-white hover:border-strawberry-500/50 hover:bg-strawberry-900/10 transition-all font-medium"
+                                >
+                                    {prompt}
+                                </button>
+                            ))}
                         </div>
                     </div>
                     
@@ -296,8 +319,8 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
                         {/* --- SKIN INPUT WITH SKIN LAB TOGGLE --- */}
                         <div className="space-y-2 group">
                             <div className="flex justify-between items-center">
-                                <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-1 group-focus-within:text-white transition-colors">Hero Skin</label>
-                                <button type="button" onClick={() => setShowSkinLab(!showSkinLab)} className="text-[9px] font-bold text-fortnite-purple uppercase tracking-wider hover:text-white transition-colors flex items-center gap-1">
+                                <label className="text-[10px] text-zinc-400 font-black uppercase tracking-widest ml-1 group-focus-within:text-white transition-colors">Hero Skin</label>
+                                <button type="button" onClick={() => setShowSkinLab(!showSkinLab)} className="text-[9px] font-bold text-strawberry-400 uppercase tracking-wider hover:text-white transition-colors flex items-center gap-1">
                                     <ScissorsIcon className="w-3 h-3" />
                                     {showSkinLab ? 'Close Lab' : '✨ Open Skin Lab'}
                                 </button>
@@ -308,31 +331,31 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
                                 value={skinDetails} 
                                 onChange={(e) => setSkinDetails(e.target.value)} 
                                 placeholder="e.g. Aura, Travis Scott" 
-                                className="w-full bg-[#0a0510] border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-fortnite-blue focus:shadow-[0_0_20px_rgba(59,130,246,0.3)] outline-none transition-all" 
+                                className="w-full bg-void-800 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-strawberry-500 focus:shadow-[0_0_20px_rgba(255,23,68,0.3)] outline-none transition-all" 
                             />
 
                             {/* --- SKIN LAB PANEL --- */}
                             {showSkinLab && (
-                                <div className="mt-4 p-6 bg-[#1a0b2e] rounded-2xl border border-fortnite-purple/30 shadow-xl animate-fade-in relative overflow-hidden">
+                                <div className="mt-4 p-6 bg-void-800 rounded-2xl border border-strawberry-500/30 shadow-xl animate-fade-in relative overflow-hidden">
                                     <div className="absolute top-0 right-0 p-2 opacity-10 pointer-events-none">
-                                        <SparklesIcon className="w-24 h-24 text-fortnite-purple" />
+                                        <SparklesIcon className="w-24 h-24 text-strawberry-500" />
                                     </div>
                                     <h4 className="text-xs font-black text-white uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-fortnite-purple rounded-full animate-pulse"></span>
+                                        <span className="w-2 h-2 bg-strawberry-500 rounded-full animate-pulse"></span>
                                         Character Designer
                                     </h4>
                                     
                                     <div className="space-y-4">
                                         {/* Base Model */}
                                         <div className="space-y-2">
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase">Base Model</span>
+                                            <span className="text-[9px] font-bold text-zinc-500 uppercase">Base Model</span>
                                             <div className="flex flex-wrap gap-2">
                                                 {SKIN_BASES.map(base => (
                                                     <button 
                                                         key={base}
                                                         type="button"
                                                         onClick={() => setLabConfig({...labConfig, base})}
-                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all ${labConfig.base === base ? 'bg-fortnite-purple text-white border-fortnite-purple' : 'bg-black/30 text-slate-400 border-white/5 hover:border-white/20'}`}
+                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all ${labConfig.base === base ? 'bg-strawberry-600 text-white border-strawberry-500' : 'bg-black/30 text-zinc-500 border-white/5 hover:border-white/20'}`}
                                                     >
                                                         {base}
                                                     </button>
@@ -342,14 +365,14 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
 
                                         {/* Style */}
                                         <div className="space-y-2">
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase">Outfit Style</span>
+                                            <span className="text-[9px] font-bold text-zinc-500 uppercase">Outfit Style</span>
                                             <div className="flex flex-wrap gap-2">
                                                 {SKIN_STYLES.map(style => (
                                                     <button 
                                                         key={style}
                                                         type="button"
                                                         onClick={() => setLabConfig({...labConfig, style})}
-                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all ${labConfig.style === style ? 'bg-blue-600 text-white border-blue-500' : 'bg-black/30 text-slate-400 border-white/5 hover:border-white/20'}`}
+                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all ${labConfig.style === style ? 'bg-blue-600 text-white border-blue-500' : 'bg-black/30 text-zinc-500 border-white/5 hover:border-white/20'}`}
                                                     >
                                                         {style}
                                                     </button>
@@ -359,14 +382,14 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
 
                                         {/* Color Theme */}
                                         <div className="space-y-2">
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase">Color Theme</span>
+                                            <span className="text-[9px] font-bold text-zinc-500 uppercase">Color Theme</span>
                                             <div className="flex flex-wrap gap-2">
                                                 {SKIN_COLORS.map(color => (
                                                     <button 
                                                         key={color}
                                                         type="button"
                                                         onClick={() => setLabConfig({...labConfig, color})}
-                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all ${labConfig.color === color ? 'bg-fortnite-gold text-black border-fortnite-gold' : 'bg-black/30 text-slate-400 border-white/5 hover:border-white/20'}`}
+                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all ${labConfig.color === color ? 'bg-fortnite-gold text-black border-fortnite-gold' : 'bg-black/30 text-zinc-500 border-white/5 hover:border-white/20'}`}
                                                     >
                                                         {color}
                                                     </button>
@@ -376,14 +399,14 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
 
                                         {/* Accessories */}
                                         <div className="space-y-2">
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase">Accessories (Toggle)</span>
+                                            <span className="text-[9px] font-bold text-zinc-500 uppercase">Accessories (Toggle)</span>
                                             <div className="flex flex-wrap gap-2">
                                                 {SKIN_ACCESSORIES.map(acc => (
                                                     <button 
                                                         key={acc}
                                                         type="button"
                                                         onClick={() => toggleAccessory(acc)}
-                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all ${labConfig.accessories.includes(acc) ? 'bg-green-600 text-white border-green-500' : 'bg-black/30 text-slate-400 border-white/5 hover:border-white/20'}`}
+                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all ${labConfig.accessories.includes(acc) ? 'bg-green-600 text-white border-green-500' : 'bg-black/30 text-zinc-500 border-white/5 hover:border-white/20'}`}
                                                     >
                                                         {acc}
                                                     </button>
@@ -396,20 +419,20 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
                         </div>
 
                         <div className="space-y-2 relative group">
-                             <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-1 group-focus-within:text-white transition-colors">3D Text Overlay</label>
-                             <input type="text" value={textOverlay} onChange={(e) => setTextOverlay(e.target.value)} placeholder="e.g. SECRET!" className="w-full bg-[#0a0510] border border-white/10 rounded-2xl px-6 py-4 text-white font-black focus:border-fortnite-gold focus:shadow-[0_0_20px_rgba(251,191,36,0.3)] outline-none transition-all tracking-wide" />
-                             {textOverlay === '' && <span className="absolute right-4 top-[38px] text-[9px] text-slate-500 bg-white/5 px-2 py-1 rounded border border-white/5 font-bold tracking-wider pointer-events-none">AUTO</span>}
+                             <label className="text-[10px] text-zinc-400 font-black uppercase tracking-widest ml-1 group-focus-within:text-white transition-colors">3D Text Overlay</label>
+                             <input type="text" value={textOverlay} onChange={(e) => setTextOverlay(e.target.value)} placeholder="e.g. SECRET!" className="w-full bg-void-800 border border-white/10 rounded-2xl px-6 py-4 text-white font-black focus:border-fortnite-gold focus:shadow-[0_0_20px_rgba(251,191,36,0.3)] outline-none transition-all tracking-wide" />
+                             {textOverlay === '' && <span className="absolute right-4 top-[38px] text-[9px] text-zinc-500 bg-white/5 px-2 py-1 rounded border border-white/5 font-bold tracking-wider pointer-events-none">AUTO</span>}
                         </div>
                     </div>
                 </div>
 
                 {/* Right Column: Reference Image */}
                 <div className="xl:col-span-4 flex flex-col gap-4">
-                     <label className="text-sm font-black text-slate-300 uppercase tracking-widest text-center xl:text-left flex items-center gap-2 justify-center xl:justify-start">
-                         <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                     <label className="text-sm font-black text-zinc-300 uppercase tracking-widest text-center xl:text-left flex items-center gap-2 justify-center xl:justify-start">
+                         <span className="w-2 h-2 bg-strawberry-500 rounded-full animate-pulse"></span>
                          Reference Asset
                      </label>
-                    <div onClick={() => fileInputRef.current?.click()} className={`flex-1 min-h-[250px] border-2 border-dashed rounded-[2rem] bg-[#0a0510] cursor-pointer flex flex-col items-center justify-center relative overflow-hidden transition-all group ${referenceImage ? 'border-fortnite-gold shadow-[0_0_30px_rgba(251,191,36,0.1)]' : 'border-white/10 hover:border-fortnite-purple/50 hover:bg-[#11081f]'}`}>
+                    <div onClick={() => fileInputRef.current?.click()} className={`flex-1 min-h-[250px] border-2 border-dashed rounded-[2rem] bg-void-800 cursor-pointer flex flex-col items-center justify-center relative overflow-hidden transition-all group ${referenceImage ? 'border-strawberry-500 shadow-[0_0_30px_rgba(255,23,68,0.2)]' : 'border-white/10 hover:border-strawberry-500/50 hover:bg-void-700'}`}>
                         <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
                         
                         {/* Grid Pattern Background */}
@@ -426,11 +449,11 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
                             </>
                         ) : (
                             <div className="text-center p-6 group-hover:scale-105 transition-transform duration-300">
-                                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10 group-hover:border-fortnite-purple/50 group-hover:bg-fortnite-purple/10 transition-colors">
-                                    <UploadIcon className="w-6 h-6 text-slate-400 group-hover:text-fortnite-purple transition-colors"/>
+                                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10 group-hover:border-strawberry-500/50 group-hover:bg-strawberry-500/10 transition-colors">
+                                    <UploadIcon className="w-6 h-6 text-zinc-500 group-hover:text-strawberry-500 transition-colors"/>
                                 </div>
                                 <span className="text-sm text-white font-black uppercase tracking-widest block mb-1">Upload Face / Skin</span>
-                                <span className="text-[10px] text-slate-500 font-bold block">Supports PNG, JPG (Max 5MB)</span>
+                                <span className="text-[10px] text-zinc-500 font-bold block">Supports PNG, JPG (Max 5MB)</span>
                             </div>
                         )}
                     </div>
@@ -441,34 +464,34 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
             <div className="border-t border-white/5 pt-10">
                 <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-6">
                      <div className="flex items-center space-x-4">
-                        <div className="bg-gradient-to-br from-fortnite-blue to-[#1e40af] p-2.5 rounded-xl shadow-lg border border-white/10">
+                        <div className="bg-gradient-to-br from-strawberry-600 to-black p-2.5 rounded-xl shadow-lg border border-strawberry-500/30">
                             <ControllerIcon className="w-5 h-5 text-white"/>
                         </div>
                         <div className="flex flex-col">
                             <span className="tracking-widest uppercase text-white font-black text-xl">Studio Config</span>
-                            <span className="text-[10px] text-fortnite-blue uppercase tracking-[0.2em] font-bold">Customize Every Detail</span>
+                            <span className="text-[10px] text-strawberry-500 uppercase tracking-[0.2em] font-bold">Customize Every Detail</span>
                         </div>
                     </div>
                     
-                    <button type="button" onClick={handleRandomize} className="group relative px-6 py-3 bg-[#0a0510] border border-white/10 rounded-xl overflow-hidden hover:border-fortnite-gold/50 transition-colors">
-                        <div className="absolute inset-0 bg-fortnite-gold/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                    <button type="button" onClick={handleRandomize} className="group relative px-6 py-3 bg-void-800 border border-white/10 rounded-xl overflow-hidden hover:border-strawberry-500/50 transition-colors">
+                        <div className="absolute inset-0 bg-strawberry-500/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                         <div className="relative flex items-center gap-2">
-                             <SparklesIcon className="w-4 h-4 text-fortnite-gold group-hover:animate-spin"/>
-                             <span className="text-xs font-black text-slate-300 uppercase tracking-wider group-hover:text-white">Randomize Loadout</span>
+                             <SparklesIcon className="w-4 h-4 text-strawberry-500 group-hover:animate-spin"/>
+                             <span className="text-xs font-black text-zinc-300 uppercase tracking-wider group-hover:text-white">Randomize Loadout</span>
                         </div>
                     </button>
                 </div>
 
                 {showAdvanced && (
-                    <div className="animate-fade-in bg-[#0a0510] rounded-[2.5rem] p-2 border border-white/5 shadow-inner relative overflow-hidden">
+                    <div className="animate-fade-in bg-void-800 rounded-[2.5rem] p-2 border border-white/5 shadow-inner relative overflow-hidden">
                         {/* Tab Headers */}
-                        <div className="flex space-x-2 p-2 mb-2 overflow-x-auto no-scrollbar bg-[#130b1c] rounded-[2rem] border border-white/5">
+                        <div className="flex space-x-2 p-2 mb-2 overflow-x-auto no-scrollbar bg-void-900 rounded-[2rem] border border-white/5">
                             {(['loadout', 'world', 'gfx', 'hype'] as const).map((tab) => (
                                 <button
                                     key={tab}
                                     type="button"
                                     onClick={() => setActiveTab(tab)}
-                                    className={`flex-1 py-3 px-4 rounded-3xl text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] transition-all whitespace-nowrap flex items-center justify-center gap-2 ${activeTab === tab ? 'bg-white text-black shadow-lg scale-100' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+                                    className={`flex-1 py-3 px-4 rounded-3xl text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] transition-all whitespace-nowrap flex items-center justify-center gap-2 ${activeTab === tab ? 'bg-white text-black shadow-lg scale-100' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
                                 >
                                     {tab === 'loadout' && '🎒 Loadout'}
                                     {tab === 'world' && '🌍 Map'}
@@ -486,17 +509,17 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
                             {activeTab === 'loadout' && (
                                 <>
                                     <div className="col-span-1 md:col-span-2 lg:col-span-1 space-y-6 border-r border-white/5 pr-4">
-                                        <h4 className="text-[10px] font-black text-fortnite-purple uppercase tracking-[0.3em] mb-4 opacity-70">Weapons</h4>
+                                        <h4 className="text-[10px] font-black text-strawberry-500 uppercase tracking-[0.3em] mb-4 opacity-70">Weapons</h4>
                                         {renderSelect('Equipped Item', advanced.weapon, FortniteWeapon, 'weapon')}
                                         {renderSelect('Item Rarity', advanced.rarity, ItemRarity, 'rarity')}
                                     </div>
                                     <div className="col-span-1 md:col-span-2 lg:col-span-1 space-y-6 border-r border-white/5 pr-4">
-                                        <h4 className="text-[10px] font-black text-fortnite-purple uppercase tracking-[0.3em] mb-4 opacity-70">Character</h4>
+                                        <h4 className="text-[10px] font-black text-strawberry-500 uppercase tracking-[0.3em] mb-4 opacity-70">Character</h4>
                                         {renderSelect('Skin Style', advanced.skinVibe, SkinVibe, 'skinVibe')}
                                         {renderSelect('Facial Emotion', advanced.emotion, Emotion, 'emotion')}
                                     </div>
                                     <div className="col-span-1 md:col-span-2 lg:col-span-1 space-y-6 pr-4">
-                                        <h4 className="text-[10px] font-black text-fortnite-purple uppercase tracking-[0.3em] mb-4 opacity-70">Action</h4>
+                                        <h4 className="text-[10px] font-black text-strawberry-500 uppercase tracking-[0.3em] mb-4 opacity-70">Action</h4>
                                         {renderSelect('Pose / Action', advanced.actionType, ActionType, 'actionType')}
                                         {renderSelect('Rank Badge', advanced.rank, FortniteRank, 'rank')}
                                     </div>
@@ -507,23 +530,23 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
                              {activeTab === 'world' && (
                                 <>
                                     <div className="col-span-1 md:col-span-2 space-y-6 border-r border-white/5 pr-6">
-                                        <h4 className="text-[10px] font-black text-fortnite-blue uppercase tracking-[0.3em] mb-4 opacity-70">Location</h4>
+                                        <h4 className="text-[10px] font-black text-strawberry-400 uppercase tracking-[0.3em] mb-4 opacity-70">Location</h4>
                                         <div className="grid grid-cols-2 gap-6">
                                             {renderSelect('Season Era', advanced.season, FortniteSeason, 'season')}
                                             {renderSelect('POI / Drop', advanced.location, FortnitePOI, 'location')}
                                         </div>
                                     </div>
                                     <div className="col-span-1 md:col-span-2 space-y-6">
-                                        <h4 className="text-[10px] font-black text-fortnite-blue uppercase tracking-[0.3em] mb-4 opacity-70">Atmosphere</h4>
+                                        <h4 className="text-[10px] font-black text-strawberry-400 uppercase tracking-[0.3em] mb-4 opacity-70">Atmosphere</h4>
                                         <div className="grid grid-cols-2 gap-6">
                                              {renderSelect('Lighting', advanced.lighting, LightingStyle, 'lighting')}
                                              <div className="flex flex-col gap-2">
-                                                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-1">Environment Toggles</label>
+                                                 <label className="text-[10px] text-zinc-500 font-black uppercase tracking-widest ml-1">Environment Toggles</label>
                                                  <div className="flex gap-2 h-full">
-                                                    <button type="button" onClick={() => updateAdvanced('showBuilds', !advanced.showBuilds)} className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-wide transition-all border ${advanced.showBuilds ? 'bg-fortnite-blue/20 border-fortnite-blue text-fortnite-blue shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-[#1a0b2e] border-white/10 text-slate-500 hover:border-white/30'}`}>
+                                                    <button type="button" onClick={() => updateAdvanced('showBuilds', !advanced.showBuilds)} className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-wide transition-all border ${advanced.showBuilds ? 'bg-strawberry-500/20 border-strawberry-500 text-strawberry-500 shadow-[0_0_15px_rgba(255,23,68,0.2)]' : 'bg-void-900 border-white/10 text-zinc-500 hover:border-white/30'}`}>
                                                         Builds
                                                     </button>
-                                                    <button type="button" onClick={() => updateAdvanced('showCrown', !advanced.showCrown)} className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-wide transition-all border ${advanced.showCrown ? 'bg-fortnite-gold/20 border-fortnite-gold text-fortnite-gold shadow-[0_0_15px_rgba(251,191,36,0.2)]' : 'bg-[#1a0b2e] border-white/10 text-slate-500 hover:border-white/30'}`}>
+                                                    <button type="button" onClick={() => updateAdvanced('showCrown', !advanced.showCrown)} className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-wide transition-all border ${advanced.showCrown ? 'bg-fortnite-gold/20 border-fortnite-gold text-fortnite-gold shadow-[0_0_15px_rgba(251,191,36,0.2)]' : 'bg-void-900 border-white/10 text-zinc-500 hover:border-white/30'}`}>
                                                         Crown
                                                     </button>
                                                  </div>
@@ -561,19 +584,19 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
                                      <div className="col-span-full mb-4">
                                          <h4 className="text-[10px] font-black text-red-500 uppercase tracking-[0.3em] mb-4 opacity-70">Clickbait Enhancers</h4>
                                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                            <button type="button" onClick={() => updateAdvanced('showDamage', !advanced.showDamage)} className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-wide transition-all border flex flex-col items-center gap-2 ${advanced.showDamage ? 'bg-yellow-500/20 border-yellow-500 text-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.2)]' : 'bg-[#1a0b2e] border-white/10 text-slate-500 hover:bg-white/5'}`}>
+                                            <button type="button" onClick={() => updateAdvanced('showDamage', !advanced.showDamage)} className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-wide transition-all border flex flex-col items-center gap-2 ${advanced.showDamage ? 'bg-yellow-500/20 border-yellow-500 text-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.2)]' : 'bg-void-900 border-white/10 text-zinc-500 hover:bg-white/5'}`}>
                                                 <span className="text-xl">💥</span>
                                                 <span>200 Pump</span>
                                             </button>
-                                            <button type="button" onClick={() => updateAdvanced('clickbaitArrows', !advanced.clickbaitArrows)} className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-wide transition-all border flex flex-col items-center gap-2 ${advanced.clickbaitArrows ? 'bg-red-500/20 border-red-500 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]' : 'bg-[#1a0b2e] border-white/10 text-slate-500 hover:bg-white/5'}`}>
+                                            <button type="button" onClick={() => updateAdvanced('clickbaitArrows', !advanced.clickbaitArrows)} className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-wide transition-all border flex flex-col items-center gap-2 ${advanced.clickbaitArrows ? 'bg-red-500/20 border-red-500 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]' : 'bg-void-900 border-white/10 text-zinc-500 hover:bg-white/5'}`}>
                                                 <span className="text-xl">🛑</span>
                                                 <span>Red Arrow</span>
                                             </button>
-                                            <button type="button" onClick={() => updateAdvanced('showRankIcon', !advanced.showRankIcon)} className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-wide transition-all border flex flex-col items-center gap-2 ${advanced.showRankIcon ? 'bg-white/20 border-white text-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-[#1a0b2e] border-white/10 text-slate-500 hover:bg-white/5'}`}>
+                                            <button type="button" onClick={() => updateAdvanced('showRankIcon', !advanced.showRankIcon)} className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-wide transition-all border flex flex-col items-center gap-2 ${advanced.showRankIcon ? 'bg-white/20 border-white text-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-void-900 border-white/10 text-zinc-500 hover:bg-white/5'}`}>
                                                 <span className="text-xl">🏆</span>
                                                 <span>Rank Icon</span>
                                             </button>
-                                            <button type="button" onClick={() => setGreenScreen(!greenScreen)} className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-wide transition-all border flex flex-col items-center gap-2 ${greenScreen ? 'bg-green-500/20 border-green-500 text-green-500 shadow-[0_0_20px_rgba(34,197,94,0.2)]' : 'bg-[#1a0b2e] border-white/10 text-slate-500 hover:bg-white/5'}`}>
+                                            <button type="button" onClick={() => setGreenScreen(!greenScreen)} className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-wide transition-all border flex flex-col items-center gap-2 ${greenScreen ? 'bg-green-500/20 border-green-500 text-green-500 shadow-[0_0_20px_rgba(34,197,94,0.2)]' : 'bg-void-900 border-white/10 text-zinc-500 hover:bg-white/5'}`}>
                                                 <span className="text-xl">🟩</span>
                                                 <span>Chroma Key</span>
                                             </button>
@@ -581,7 +604,7 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
                                      </div>
                                      <div className="col-span-full">
                                         <div className="flex justify-between items-center mb-2">
-                                            <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Elimination Counter</label>
+                                            <label className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">Elimination Counter</label>
                                             <span className="text-2xl font-black text-fortnite-gold font-display drop-shadow-md">{advanced.killCount}</span>
                                         </div>
                                         <input 
@@ -590,7 +613,7 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
                                             max="99" 
                                             value={advanced.killCount} 
                                             onChange={(e) => updateAdvanced('killCount', parseInt(e.target.value))} 
-                                            className="w-full h-4 bg-[#1a0b2e] rounded-full appearance-none cursor-pointer accent-fortnite-gold border border-white/10" 
+                                            className="w-full h-4 bg-void-900 rounded-full appearance-none cursor-pointer accent-fortnite-gold border border-white/10" 
                                         />
                                      </div>
                                 </>
@@ -603,25 +626,25 @@ export const ThumbnailForm: React.FC<ThumbnailFormProps> = ({ onGenerate, isGene
 
             {/* GENERATE BUTTON */}
             <div className="pt-8 relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-fortnite-gold via-yellow-400 to-orange-500 blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 rounded-[2rem]"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-strawberry-500 via-red-600 to-strawberry-800 blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 rounded-[2rem]"></div>
                 <button
                     type="submit"
                     disabled={isGenerating}
                     className={`w-full py-8 rounded-[2rem] font-display text-5xl tracking-wide shadow-[0_10px_40px_rgba(0,0,0,0.5)] transform transition-all duration-300 flex items-center justify-center group relative overflow-hidden border-t-2 border-white/30 active:scale-[0.98] active:shadow-none
-                    ${isGenerating ? 'bg-slate-900 cursor-not-allowed grayscale' : 'bg-gradient-to-b from-fortnite-gold to-yellow-600 text-[#0f0518] hover:scale-[1.01]'}`}
+                    ${isGenerating ? 'bg-zinc-900 cursor-not-allowed grayscale' : 'bg-gradient-to-b from-strawberry-500 to-strawberry-700 text-white hover:scale-[1.01]'}`}
                 >
                     {/* Shine Effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out skew-x-12"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out skew-x-12"></div>
                     
                     {isGenerating ? (
                         <>
-                            <LoadingSpinner className="w-10 h-10 mr-6 text-black"/> 
-                            <span className="text-2xl font-display text-black/70 animate-pulse">{statusMessage}</span>
+                            <LoadingSpinner className="w-10 h-10 mr-6 text-white"/> 
+                            <span className="text-2xl font-display text-white/70 animate-pulse">{statusMessage}</span>
                         </>
                     ) : (
                         <div className="flex items-center gap-4 relative z-10 drop-shadow-sm">
                             <span className="text-6xl">🚀</span>
-                            <span className="mt-2 text-white drop-shadow-[0_2px_0_rgba(0,0,0,0.5)]" style={{ WebkitTextStroke: '1px black' }}>GENERATE</span>
+                            <span className="mt-2 text-white drop-shadow-[0_2px_0_rgba(0,0,0,0.5)]" style={{ WebkitTextStroke: '2px black' }}>GENERATE</span>
                         </div>
                     )}
                 </button>
