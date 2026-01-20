@@ -18,9 +18,9 @@ Deploy your own instance of FortniteGenius for free on Vercel.
 
 1.  Push this code to your own GitHub, GitLab, or Bitbucket repository.
 2.  Click the button below to import your project into Vercel.
-3.  Add your `API_KEY` when prompted during the deployment.
+3.  Add your `API_KEY` when prompted during the deployment (Environment Variables).
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new?env=API_KEY)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
 
 **Environment Variables Required:**
 *   `API_KEY`: Your Google Gemini API Key (Get it from [Google AI Studio](https://aistudio.google.com/))
@@ -28,19 +28,22 @@ Deploy your own instance of FortniteGenius for free on Vercel.
 ## 🛠️ Local Development
 
 1.  **Clone the project**
-2.  **Create a `.env` file** in the root directory:
+2.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
+3.  **Create a `.env` file** in the root directory:
     ```env
     API_KEY=your_google_gemini_api_key
     ```
-3.  **Serve the app**:
-    Since this project uses ES Modules directly in the browser (no build step required for dev), you can use any static file server.
+4.  **Start the dev server**:
     ```bash
-    npx serve .
+    npm run dev
     ```
 
 ## 📦 Tech Stack
 
-*   **Frontend**: React 19 (via ESM), Tailwind CSS
+*   **Frontend**: React 18, Tailwind CSS (CDN), Vite
 *   **AI Engine**: Google Gemini 2.5 Flash & Pro via `@google/genai`
 *   **Data Sources**: Fortnite-API.com & FortniteAPI.io
 
