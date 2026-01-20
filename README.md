@@ -14,9 +14,13 @@ Top-tier AI Thumbnail generator designed specifically for Fortnite creators. Bui
 
 ## 🚀 Deploy to Vercel
 
-Deploy your own instance of FortniteGenius for free on Vercel. You will need a Google Gemini API Key.
+Deploy your own instance of FortniteGenius for free on Vercel.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fgoogle-gemini%2Ffortnite-genius-demo&env=API_KEY&project-name=fortnite-genius&repository-name=fortnite-genius)
+1.  Push this code to your own GitHub, GitLab, or Bitbucket repository.
+2.  Click the button below to import your project into Vercel.
+3.  Add your `API_KEY` when prompted during the deployment.
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new?env=API_KEY)
 
 **Environment Variables Required:**
 *   `API_KEY`: Your Google Gemini API Key (Get it from [Google AI Studio](https://aistudio.google.com/))
