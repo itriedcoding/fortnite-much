@@ -1,8 +1,9 @@
-import { ShopItem, PlayerStats, NewsItem, CosmeticItem } from "../types";
+
+import { ShopItem, PlayerStats, NewsItem, CosmeticItem, MapData } from "../types";
 
 // API Keys
 const IO_API_KEY = 'c8994e16-f9efba2f-da65b937-55d026d8'; // For Item Shop
-const COM_API_KEY = '71d91f6f-df4c-4ea8-a406-cbb834d79bf5'; // For Stats & News
+const COM_API_KEY = '71d91f6f-df4c-4ea8-a406-cbb834d79bf5'; // For Stats, News & Map
 
 // API Endpoints
 const SHOP_API_BASE = 'https://fortniteapi.io'; 
@@ -19,7 +20,16 @@ export const fetchDailyShop = async (): Promise<ShopItem[]> => {
         
         if (!response.ok) {
             console.error(`Shop API Error: ${response.status}`);
+            const text = await response.text();
+            console.error('Shop Error Body:', text);
             throw new Error(`Shop API Error: ${response.status}`);
+        }
+
+        // Check content type before parsing
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            console.error("Shop API returned non-JSON response");
+            return [];
         }
 
         const data = await response.json();
@@ -131,6 +141,47 @@ export const fetchDailyShop = async (): Promise<ShopItem[]> => {
     } catch (error) {
         console.error("Failed to fetch shop from .io:", error);
         return [];
+    }
+};
+
+/**
+ * FETCH MAP FROM FORTNITE-API.COM
+ */
+export const fetchCurrentMap = async (): Promise<MapData | null> => {
+    try {
+        // Switch to STATS_API_BASE (fortnite-api.com) and COM_API_KEY
+        const response = await fetch(`${STATS_API_BASE}/v1/map`, { 
+            headers: { 'Authorization': COM_API_KEY } 
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Map API Error: ${response.status}`, errorText);
+            return null;
+        }
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            console.error("Map API returned non-JSON response", await response.text());
+            return null;
+        }
+
+        const data = await response.json();
+
+        // Check for 'status' and 'data' fields consistent with fortnite-api.com response structure
+        if (data.status === 200 && data.data && data.data.images) {
+            return {
+                images: {
+                    blank: data.data.images.blank,
+                    pois: data.data.images.pois
+                },
+                pois: data.data.pois || []
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error("Failed to fetch map:", error);
+        return null;
     }
 };
 

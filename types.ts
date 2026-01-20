@@ -1,4 +1,5 @@
 
+
 export interface GeneratedImage {
   id: string;
   url: string;
@@ -329,4 +330,22 @@ export interface NewsItem {
     tileImage: string;
     video: string | null;
     date: string;
+}
+
+export interface MapPOI {
+    id: string;
+    name: string;
+    location: {
+        x: number;
+        y: number;
+        z: number;
+    }
+}
+
+export interface MapData {
+    images: {
+        blank: string;
+        pois: string;
+    };
+    pois: MapPOI[];
 }
