@@ -28,6 +28,8 @@
               },
               fortnite: {
                 gold: '#fbbf24', // Keeping Gold for "Legendary" status
+                blue: '#00d4ff',
+                purple: '#bd00ff'
               }
             },
             fontFamily: {
@@ -40,6 +42,8 @@
               'fade-in': 'fadeIn 0.5s ease-out forwards',
               'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
               'glow': 'glow 2s ease-in-out infinite alternate',
+              'scan': 'scan 4s linear infinite',
+              'spin-slow': 'spin 12s linear infinite',
             },
             keyframes: {
               float: {
@@ -57,7 +61,14 @@
               glow: {
                 '0%': { boxShadow: '0 0 5px #ff1744' },
                 '100%': { boxShadow: '0 0 20px #ff1744, 0 0 10px #ff1744' }
+              },
+              scan: {
+                '0%': { top: '0%' },
+                '100%': { top: '100%' }
               }
+            },
+            backgroundImage: {
+              'grid-pattern': "linear-gradient(to right, #222 1px, transparent 1px), linear-gradient(to bottom, #222 1px, transparent 1px)",
             }
           },
         },
@@ -95,6 +106,15 @@
       .no-scrollbar {
           -ms-overflow-style: none;
           scrollbar-width: none;
+      }
+      .perspective-1000 {
+        perspective: 1000px;
+      }
+      .transform-style-3d {
+        transform-style: preserve-3d;
+      }
+      .backface-hidden {
+        backface-visibility: hidden;
       }
     </style>
   <script type="importmap">

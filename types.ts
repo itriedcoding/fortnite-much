@@ -187,6 +187,39 @@ export enum AspectRatio {
   SQUARE = '1:1 (Post)'
 }
 
+// --- CLAN FORGE TYPES ---
+export enum EsportsMascot {
+  WOLF = 'Wolf',
+  KNIGHT = 'Knight',
+  SPARTAN = 'Spartan',
+  REAPER = 'Grim Reaper',
+  DRAGON = 'Dragon',
+  PHOENIX = 'Phoenix',
+  SAMURAI = 'Samurai',
+  CYBORG = 'Cyborg',
+  TIGER = 'Tiger',
+  SHARK = 'Shark',
+  VIKING = 'Viking',
+  DEMON = 'Demon',
+  ALIEN = 'Alien'
+}
+
+export enum LogoStyle {
+  VECTOR = 'Vector Illustration (Thick Outlines)',
+  MINIMAL = 'Minimalist / Flat',
+  CHROME = 'Chrome / Y2K / 3D',
+  GLITCH = 'Glitch / Cyberpunk',
+  VINTAGE = 'Vintage Badge / Shield',
+  NEON = 'Neon Sign / Glowing'
+}
+
+export interface BrandConfig {
+    name: string;
+    mascot: EsportsMascot;
+    style: LogoStyle;
+    primaryColor: string;
+}
+
 export interface AdvancedConfig {
   lighting: LightingStyle;
   camera: CameraAngle;

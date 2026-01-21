@@ -8,11 +8,12 @@ import { PlayerStats } from './components/PlayerStats';
 import { NewsFeed } from './components/NewsFeed';
 import { MapViewer } from './components/MapViewer';
 import { VoiceoverStudio } from './components/VideoGenerator';
+import { BrandStudio } from './components/BrandStudio';
 import { GeneratedImage as GeneratedImageType, ThumbnailConfig } from './types';
 import { enhancePrompt, generateThumbnailImage } from './services/gemini';
-import { ChartIcon, MagicWandIcon, ShopIcon, NewsIcon, MapIcon, MicrophoneIcon } from './components/Icons';
+import { ChartIcon, MagicWandIcon, ShopIcon, NewsIcon, MapIcon, MicrophoneIcon, ShieldIcon } from './components/Icons';
 
-type ViewMode = 'generator' | 'shop' | 'stats' | 'news' | 'map' | 'voiceover';
+type ViewMode = 'generator' | 'shop' | 'stats' | 'news' | 'map' | 'voiceover' | 'brand';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewMode>('generator');
@@ -114,6 +115,11 @@ const App: React.FC = () => {
               backgroundSize: '60px 60px',
               maskImage: 'radial-gradient(circle at center, black 40%, transparent 100%)'
           }}></div>
+
+          {/* Floating Particles */}
+          <div className="absolute w-2 h-2 bg-strawberry-500 rounded-full blur-[2px] opacity-40 top-1/4 left-1/4 animate-ping"></div>
+          <div className="absolute w-1 h-1 bg-white rounded-full opacity-30 top-3/4 right-1/3 animate-pulse"></div>
+          <div className="absolute w-3 h-3 bg-purple-500 rounded-full blur-[4px] opacity-20 bottom-10 left-10 animate-bounce"></div>
       </div>
 
       <div className="relative z-10 flex flex-col min-h-screen">
@@ -124,6 +130,7 @@ const App: React.FC = () => {
             <div className="container mx-auto px-4 flex justify-center gap-4 flex-wrap">
                 <div className="p-1.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-3xl flex flex-wrap justify-center gap-2 shadow-2xl overflow-x-auto no-scrollbar max-w-full">
                     <NavButton mode="generator" icon={MagicWandIcon} label="Studio" />
+                    <NavButton mode="brand" icon={ShieldIcon} label="Clan Forge" />
                     <NavButton mode="shop" icon={ShopIcon} label="Item Shop" />
                     <NavButton mode="voiceover" icon={MicrophoneIcon} label="Hype VO" />
                     <NavButton mode="map" icon={MapIcon} label="Map Intel" />
@@ -203,6 +210,7 @@ const App: React.FC = () => {
             {currentView === 'news' && <NewsFeed />}
             {currentView === 'map' && <MapViewer />}
             {currentView === 'voiceover' && <VoiceoverStudio />}
+            {currentView === 'brand' && <BrandStudio />}
 
         </main>
 

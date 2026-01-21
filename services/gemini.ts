@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Modality, Type } from "@google/genai";
-import { ThumbnailCategory, ThumbnailConfig, AdvancedConfig, LightingStyle, CameraAngle, CompositionMode, FortnitePOI, FortniteWeapon, ItemRarity, GraphicsMode, AspectRatio, ActionType, SkinVibe, FortniteRank, FortniteSeason } from "../types";
+import { ThumbnailCategory, ThumbnailConfig, AdvancedConfig, LightingStyle, CameraAngle, CompositionMode, FortnitePOI, FortniteWeapon, ItemRarity, GraphicsMode, AspectRatio, ActionType, SkinVibe, FortniteRank, FortniteSeason, BrandConfig, EsportsMascot, LogoStyle } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -110,6 +110,74 @@ export const enhancePrompt = async (config: ThumbnailConfig): Promise<string> =>
 };
 
 /**
+ * GENERATE BRAND NAME (CLAN FORGE)
+ */
+export const generateBrandName = async (vibe: string): Promise<string> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: `Generate a single, cool, 1-word esports team name based on this vibe: "${vibe}". 
+            Examples: Solary, Sentinels, Cloud9, Liquid, FaZe, 100Thieves, Ghost, Shadow.
+            Return ONLY the name. No quotes, no extra text.`
+        });
+        return response.text?.trim() || "Obsidian";
+    } catch (e) {
+        return "Apex";
+    }
+}
+
+/**
+ * AUTO-ANALYZE IDENTITY (CLAN FORGE)
+ */
+export const analyzeBrandIdentity = async (name: string): Promise<{ mascot: string, style: string, color: string }> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: `Analyze the esports team name "${name}" and suggest the best visual identity.
+            
+            Return a JSON object with:
+            - mascot: Best fitting mascot from [Wolf, Knight, Spartan, Reaper, Dragon, Phoenix, Samurai, Cyborg, Tiger, Shark, Viking, Demon, Alien].
+            - style: Best fitting style from [Vector Illustration, Minimalist, Chrome 3D, Glitch Cyberpunk, Vintage Badge, Neon Sign].
+            - color: A cool hex color code matching the vibe (e.g. #FF0000 for aggressive, #00D4FF for tech).
+            `,
+            config: {
+                responseMimeType: "application/json"
+            }
+        });
+        
+        const json = JSON.parse(response.text || "{}");
+        return {
+            mascot: json.mascot || 'Wolf',
+            style: json.style || 'Vector Illustration',
+            color: json.color || '#FF0000'
+        };
+    } catch (e) {
+        console.error("Identity Analysis Error", e);
+        return { mascot: 'Wolf', style: 'Vector Illustration', color: '#FF0000' };
+    }
+}
+
+/**
+ * GENERATE LOGO PROMPT (CLAN FORGE)
+ */
+export const generateLogoPrompt = (config: BrandConfig): string => {
+    return `
+      Esports Team Logo for "${config.name}".
+      Subject: A stylized ${config.mascot} head/mascot.
+      Style: ${config.style}.
+      Primary Colors: ${config.primaryColor} and Black/White.
+      
+      IMPORTANT COMPOSITION RULES:
+      - Vector art style with thick, bold outlines.
+      - Flat shading or cell shading.
+      - High contrast.
+      - Centered composition.
+      - **BACKGROUND MUST BE SOLID WHITE (#FFFFFF)**. This is crucial for background removal.
+      - No realistic photo details. Must look like a professional gaming clan logo (e.g. like G2, Liquid, Cloud9).
+    `;
+}
+
+/**
  * GENERATE VIRAL TITLES
  */
 export const generateViralTitles = async (topic: string): Promise<string[]> => {
@@ -159,7 +227,7 @@ export const summarizeNews = async (text: string): Promise<string> => {
 }
 
 /**
- * GENERATE THUMBNAIL (NANO BANANA FAST)
+ * GENERATE THUMBNAIL / LOGO (NANO BANANA FAST)
  */
 export const generateThumbnailImage = async (prompt: string, referenceImage: string | null, aspectRatio: AspectRatio): Promise<string> => {
   try {
