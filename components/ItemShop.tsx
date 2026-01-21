@@ -5,7 +5,6 @@ import { fetchDailyShop } from '../services/fortniteApi';
 import { LoadingSpinner, RefreshIcon, ShopIcon, HeartIcon } from './Icons';
 
 const VBUCK_ICON_URL = "https://fortnite-api.com/images/vbuck.png";
-const VBUCK_TO_USD_RATE = 0.00899;
 
 // --- 3D TILT CARD COMPONENT ---
 const ShopCard = ({ item, onClick, isWishlisted, isInCart, onToggleWishlist, onToggleCart }: any) => {
@@ -89,6 +88,7 @@ export const ItemShop: React.FC = () => {
     const [items, setItems] = useState<ShopItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [timeLeft, setTimeLeft] = useState('');
+    const [isRotating, setIsRotating] = useState(false);
     const [isEmpty, setIsEmpty] = useState(false);
     
     // Filters & Cart
@@ -152,26 +152,55 @@ export const ItemShop: React.FC = () => {
     const loadShop = async () => {
         setLoading(true);
         setIsEmpty(false);
-        const shopItems = await fetchDailyShop();
-        if (shopItems.length === 0) setIsEmpty(true);
-        setItems(shopItems);
-        setLoading(false);
+        try {
+            const shopItems = await fetchDailyShop();
+            if (shopItems.length === 0) setIsEmpty(true);
+            setItems(shopItems);
+        } catch (e) {
+            setIsEmpty(true);
+        } finally {
+            setLoading(false);
+            setIsRotating(false);
+        }
+    };
+
+    const handleRefresh = () => {
+        loadShop();
     };
 
     useEffect(() => {
         const timer = setInterval(() => {
             const now = new Date();
-            const tomorrow = new Date(now);
-            tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-            tomorrow.setUTCHours(0, 0, 0, 0);
-            const diff = tomorrow.getTime() - now.getTime();
-            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-            setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+            // Calculate next rotation (00:00 UTC Tomorrow)
+            const nextRotation = new Date(now);
+            nextRotation.setUTCDate(now.getUTCDate() + 1);
+            nextRotation.setUTCHours(0, 0, 0, 0);
+            
+            const diff = nextRotation.getTime() - now.getTime();
+            
+            // Check if we are within the "rotation window" (e.g. 00:00:00 - 00:01:00 UTC)
+            // If diff is close to 24h, it means we just rotated.
+            // Let's use a simpler check: if diff is very small, we are about to rotate.
+            
+            if (diff <= 1000) {
+                 // Shop rotates at 00:00 UTC. Wait 30s to be safe.
+                 setIsRotating(true);
+                 setTimeLeft("ROTATING...");
+                 setTimeout(loadShop, 30000); 
+            } else {
+                 if (isRotating && diff > 86300000) {
+                    // We just rotated (diff is near 24h)
+                    // Keep isRotating true until loadShop finishes
+                 } else {
+                     const hours = Math.floor(diff / (1000 * 60 * 60));
+                     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                     setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+                 }
+            }
         }, 1000);
         return () => clearInterval(timer);
-    }, []);
+    }, [isRotating]);
 
     return (
         <div className="w-full max-w-[1920px] mx-auto animate-fade-in-up px-4 sm:px-8 pb-32">
@@ -184,9 +213,20 @@ export const ItemShop: React.FC = () => {
                     </h2>
                 </div>
                 
-                <div className="flex flex-wrap justify-center items-center gap-6 text-sm font-bold font-mono z-20 relative">
+                <div className="flex flex-col items-center gap-4 z-20 relative">
+                    {/* Timer & Refresh */}
+                    <div className={`flex items-center gap-4 px-6 py-2 rounded-full border transition-all duration-300 ${isRotating ? 'bg-fortnite-gold/20 border-fortnite-gold' : 'bg-black/40 backdrop-blur-md border-white/10'}`}>
+                        <span className="text-xs font-mono text-zinc-400 uppercase tracking-widest">Next Rotation:</span>
+                        <span className={`text-lg font-black font-mono tracking-widest ${isRotating ? 'text-white animate-pulse' : 'text-fortnite-gold'}`}>
+                            {timeLeft || 'CALCULATING...'}
+                        </span>
+                        <button onClick={handleRefresh} className="ml-2 p-2 hover:bg-white/10 rounded-full transition-colors group" title="Force Refresh">
+                            <RefreshIcon className={`w-4 h-4 text-white group-hover:rotate-180 transition-transform duration-500 ${loading ? 'animate-spin' : ''}`} />
+                        </button>
+                    </div>
+
                      {/* Controls */}
-                    <div className="flex flex-wrap gap-4 justify-center">
+                    <div className="flex flex-wrap gap-4 justify-center mt-4">
                         <input 
                             type="text" 
                             value={searchTerm}
@@ -208,12 +248,14 @@ export const ItemShop: React.FC = () => {
             {loading ? (
                 <div className="flex flex-col items-center justify-center h-[60vh]">
                     <LoadingSpinner className="w-32 h-32 text-fortnite-gold mb-10" />
-                    <p className="text-white text-3xl font-display italic tracking-widest animate-pulse drop-shadow-lg">SYNCING SHOP DATA...</p>
+                    <p className="text-white text-3xl font-display italic tracking-widest animate-pulse drop-shadow-lg">
+                        {isRotating ? 'REFRESHING SHOP DATA...' : 'SYNCING SHOP DATA...'}
+                    </p>
                 </div>
             ) : isEmpty ? (
                 <div className="flex flex-col items-center justify-center h-[50vh] bg-red-950/20 rounded-[3rem] border border-red-500/30 p-12 backdrop-blur-sm max-w-4xl mx-auto">
                      <p className="text-red-500 font-display text-5xl mb-4 italic">SERVER ERROR</p>
-                     <p className="text-slate-300 text-xl mb-8 text-center leading-relaxed">Could not retrieve Shop Data from the Island.</p>
+                     <p className="text-slate-300 text-xl mb-8 text-center leading-relaxed">Could not retrieve Shop Data from the Island. The API might be down or rotating.</p>
                      <button onClick={loadShop} className="px-10 py-5 bg-red-600 text-white font-display italic rounded-2xl hover:bg-red-500 transition-all hover:scale-105 shadow-xl text-xl">RETRY CONNECTION</button>
                 </div>
             ) : (

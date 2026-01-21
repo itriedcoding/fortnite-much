@@ -90,6 +90,7 @@ export const BrandStudio: React.FC = () => {
                 setMascot(matchedMascot);
                 setStyle(matchedStyle);
                 setElement(identity.element);
+                setEvolutionTier(identity.evolutionTier);
                 
                 setPrimaryColor(identity.primaryColor);
                 setSecondaryColor(identity.secondaryColor);
@@ -385,20 +386,31 @@ export const BrandStudio: React.FC = () => {
                      {/* 2. VISUAL CORE */}
                      <div className="bg-[#0f0a15] rounded-[2rem] p-6 border border-white/10 shadow-2xl relative overflow-hidden">
                          <div className="absolute top-0 right-0 p-4 opacity-10"><ShieldIcon className="w-12 h-12 text-white"/></div>
-                         <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2">
-                             <span className="w-2 h-2 bg-purple-500 rounded-full"></span> Phase 2: Visual Core
-                         </h3>
+                         <div className="flex items-center justify-between mb-6">
+                             <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                 <span className="w-2 h-2 bg-purple-500 rounded-full"></span> Phase 2: Visual Core
+                             </h3>
+                             {aiAutoMode && <span className="text-[9px] font-bold text-green-500 bg-green-900/20 px-2 py-1 rounded border border-green-500/30">AI LOCKED</span>}
+                         </div>
 
-                         <div className="space-y-6">
+                         <div className={`space-y-6 transition-all duration-300 ${aiAutoMode ? 'pointer-events-none opacity-90' : ''}`}>
                              {/* Elemental Affinity */}
                              <div className="space-y-2">
-                                 <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Elemental Affinity (Auto)</label>
+                                 <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
+                                     Elemental Affinity 
+                                     {aiAutoMode && <span className="text-green-500 text-[8px]">(AUTO)</span>}
+                                 </label>
                                  <div className="flex flex-wrap gap-2">
                                      {ELEMENTS.map((elm) => (
                                          <button 
                                             key={elm} 
                                             onClick={() => setElement(elm)}
-                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide border transition-all ${element === elm ? 'bg-white text-black border-white' : 'bg-black/40 text-slate-500 border-white/5 hover:bg-white/5'}`}
+                                            disabled={aiAutoMode}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide border transition-all 
+                                                ${element === elm 
+                                                    ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' 
+                                                    : 'bg-black/40 text-slate-500 border-white/5 hover:bg-white/5'
+                                                } ${aiAutoMode && element !== elm ? 'opacity-30' : ''}`}
                                          >
                                              {elm}
                                          </button>
@@ -410,15 +422,35 @@ export const BrandStudio: React.FC = () => {
                              <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                      <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Mascot</label>
-                                     <select value={mascot} onChange={(e) => setMascot(e.target.value as EsportsMascot)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 text-xs text-white font-bold outline-none appearance-none">
-                                         {Object.values(EsportsMascot).map(m => <option key={m} value={m}>{m}</option>)}
-                                     </select>
+                                     <div className="relative">
+                                         <select 
+                                            value={mascot} 
+                                            onChange={(e) => setMascot(e.target.value as EsportsMascot)} 
+                                            disabled={aiAutoMode}
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 text-xs text-white font-bold outline-none appearance-none disabled:text-green-400 disabled:border-green-500/30"
+                                         >
+                                             {Object.values(EsportsMascot).map(m => <option key={m} value={m}>{m}</option>)}
+                                         </select>
+                                         {aiAutoMode && <div className="absolute right-3 top-3 text-[9px] text-green-500 font-mono">LOCKED</div>}
+                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                      <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Evolution Tier</label>
                                      <div className="flex gap-2 p-1 bg-black/40 rounded-xl border border-white/10">
-                                         <button onClick={() => setEvolutionTier(1)} className={`flex-1 py-2 rounded-lg text-[10px] font-bold ${evolutionTier === 1 ? 'bg-white text-black' : 'text-slate-500'}`}>Rookie</button>
-                                         <button onClick={() => setEvolutionTier(2)} className={`flex-1 py-2 rounded-lg text-[10px] font-bold ${evolutionTier === 2 ? 'bg-red-600 text-white' : 'text-slate-500'}`}>Pro</button>
+                                         <button 
+                                            onClick={() => setEvolutionTier(1)} 
+                                            disabled={aiAutoMode}
+                                            className={`flex-1 py-2 rounded-lg text-[10px] font-bold transition-all ${evolutionTier === 1 ? 'bg-white text-black shadow-lg' : 'text-slate-500'} ${aiAutoMode && evolutionTier !== 1 ? 'opacity-30' : ''}`}
+                                         >
+                                             Rookie
+                                         </button>
+                                         <button 
+                                            onClick={() => setEvolutionTier(2)} 
+                                            disabled={aiAutoMode}
+                                            className={`flex-1 py-2 rounded-lg text-[10px] font-bold transition-all ${evolutionTier === 2 ? 'bg-red-600 text-white shadow-lg' : 'text-slate-500'} ${aiAutoMode && evolutionTier !== 2 ? 'opacity-30' : ''}`}
+                                         >
+                                             Pro
+                                         </button>
                                      </div>
                                 </div>
                              </div>

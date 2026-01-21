@@ -2,20 +2,28 @@
 import { ShopItem, PlayerStats, NewsItem, CosmeticItem, MapData } from "../types";
 
 // API Keys
-const IO_API_KEY = 'c8994e16-f9efba2f-da65b937-55d026d8'; // For Item Shop
-const COM_API_KEY = '71d91f6f-df4c-4ea8-a406-cbb834d79bf5'; // For Stats, News & Map
+const IO_API_KEY = 'c8994e16-f9efba2f-da65b937-55d026d8'; // Deprecated for Shop, kept for legacy if needed
+const COM_API_KEY = '71d91f6f-df4c-4ea8-a406-cbb834d79bf5'; // For Shop, Stats, News & Map
 
 // API Endpoints
 const SHOP_API_BASE = 'https://fortniteapi.io'; 
 const STATS_API_BASE = 'https://fortnite-api.com';
 
 /**
- * FETCH SHOP FROM FORTNITEAPI.IO
+ * FETCH SHOP FROM FORTNITE-API.COM (New Provider)
  */
 export const fetchDailyShop = async (): Promise<ShopItem[]> => {
     try {
-        const response = await fetch(`${SHOP_API_BASE}/v2/shop?lang=en`, { 
-            headers: { 'Authorization': IO_API_KEY } 
+        // Add cache busting and language param
+        // Added Pragma: no-cache to be thorough
+        const response = await fetch(`${STATS_API_BASE}/v2/shop/br?language=en&t=${Date.now()}`, { 
+            headers: { 
+                'Authorization': COM_API_KEY,
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            },
+            cache: 'no-store'
         });
         
         if (!response.ok) {
@@ -23,120 +31,105 @@ export const fetchDailyShop = async (): Promise<ShopItem[]> => {
             return [];
         }
 
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            console.error("Shop API returned non-JSON response");
-            return [];
-        }
+        const json = await response.json();
+        
+        if (!json.data) return [];
 
-        const data = await response.json();
+        const shopData = json.data;
+        const rawEntries: any[] = [];
 
-        if (data && data.result && data.shop) {
-            // Filter out any null items after mapping
-            return data.shop.map((item: any) => {
-                try {
-                    // --- 1. NAME RESOLUTION ---
-                    let displayName = item.displayName;
-                    let displayDescription = item.displayDescription;
+        // Iterate over all keys in data to find sections (featured, daily, etc.)
+        // This handles dynamic section names automatically
+        Object.entries(shopData).forEach(([key, section]: [string, any]) => {
+            // Skip metadata keys
+            if (key === 'hash' || key === 'date' || key === 'vbuckIcon') return;
 
-                    // If top level name is missing (common in bundles), find the "Main" item
-                    if (!displayName && item.granted && item.granted.length > 0) {
-                         const mainItem = item.granted.find((g: any) => g.type?.id === 'outfit') || item.granted[0];
-                         displayName = mainItem.name;
-                         displayDescription = mainItem.description;
-                    }
+            if (section && typeof section === 'object' && Array.isArray(section.entries)) {
+                section.entries.forEach((entry: any) => {
+                    // Inject the section name into the entry for grouping
+                    rawEntries.push({ ...entry, _sectionName: section.name || key });
+                });
+            }
+        });
 
-                    // --- 2. IMAGE RESOLUTION ---
-                    let imageUrl = null;
-                    let backgroundUrl = null;
+        return rawEntries.map((entry: any): ShopItem | null => {
+            try {
+                // 1. Identify Main Item
+                const mainItem = entry.items?.[0];
+                if (!mainItem) return null;
 
-                    // A. Try Display Assets (Shop Tiles) - The best quality
-                    if (item.displayAssets && item.displayAssets.length > 0) {
-                        imageUrl = item.displayAssets[0].url || item.displayAssets[0].background;
-                        backgroundUrl = item.displayAssets[0].background;
-                    }
+                // 2. Resolve Display Name (Bundle Name > Item Name)
+                const name = entry.bundle?.name || mainItem.name;
+                const desc = entry.bundle?.info || mainItem.description;
 
-                    // B. If no Display Asset, look at the Granted Content
-                    if (!imageUrl && item.granted && item.granted.length > 0) {
-                        // Priority: Outfit > Backpack > Pickaxe > Emote > Glider > Wrap > Any
-                        const typePriority = ['outfit', 'backpack', 'pickaxe', 'emote', 'glider', 'wrap'];
-                        
-                        const mainItem = item.granted.sort((a: any, b: any) => {
-                             const indexA = typePriority.indexOf(a.type?.id);
-                             const indexB = typePriority.indexOf(b.type?.id);
-                             if (indexA === -1 && indexB === -1) return 0;
-                             if (indexA === -1) return 1;
-                             if (indexB === -1) return -1;
-                             return indexA - indexB;
-                        })[0];
-                        
-                        if (mainItem) {
-                             imageUrl = mainItem.images?.featured || mainItem.images?.icon || mainItem.images?.background;
-                             // Fallback for Jam Tracks (Album Art)
-                             if (!imageUrl && mainItem.albumArt) {
-                                 imageUrl = mainItem.albumArt;
-                             }
-                             backgroundUrl = mainItem.images?.background;
-                        }
-                    }
-
-                    // C. Fallback for Instruments/Cars/Tracks located at root
-                    if (!imageUrl) {
-                         imageUrl = item.images?.icon || item.images?.featured || item.images?.background;
-                    }
-                    
-                    // --- 3. STRICT FILTERING ---
-                    // If we still don't have a name, or it's "Unknown", or image is the generic placeholder -> KILL IT.
-                    if (!displayName || displayName.toLowerCase() === 'unknown' || !imageUrl || imageUrl.includes('unknown/icon.png')) {
-                        return null; 
-                    }
-
-                    // Fallback section logic
-                    let sectionName = 'Daily';
-                    let sectionId = 'daily';
-
-                    if (item.section) {
-                        sectionName = item.section.name || 'Daily';
-                        sectionId = item.section.id || 'daily';
-                    } else if (item.priority < 0) {
-                        sectionName = 'Featured';
-                        sectionId = 'featured';
-                    }
-
-                    return {
-                        id: item.mainId,
-                        displayName: displayName,
-                        displayDescription: displayDescription || '',
-                        price: {
-                            finalPrice: item.price?.finalPrice || 0,
-                            regularPrice: item.price?.regularPrice || 0
-                        },
-                        rarity: {
-                            id: item.rarity?.id || 'Common',
-                            name: item.rarity?.name || 'Common'
-                        },
-                        displayAssets: [{
-                            url: imageUrl,
-                            background: backgroundUrl
-                        }],
-                        section: {
-                            id: sectionId,
-                            name: sectionName
-                        },
-                        banner: item.banner ? { value: item.banner.name, intensity: item.banner.intensity } : undefined,
-                        firstRelease: item.firstRelease ? {
-                            season: item.firstRelease.season,
-                            chapter: item.firstRelease.chapter
-                        } : undefined
-                    };
-                } catch (innerError) {
-                    return null; 
+                // 3. Resolve Image
+                // Priority: NewDisplayAsset (Render) > Bundle Image > Item Featured > Item Icon
+                let imageUrl = null;
+                
+                if (entry.newDisplayAsset) {
+                    imageUrl = entry.newDisplayAsset.materialInstances?.[0]?.images?.OfferImage 
+                            || entry.newDisplayAsset.renderImages?.[0]?.image;
                 }
-            }).filter((item: ShopItem | null) => item !== null);
-        }
-        return [];
+                
+                if (!imageUrl && entry.bundle && entry.bundle.image) {
+                    imageUrl = entry.bundle.image;
+                }
+
+                if (!imageUrl) {
+                    imageUrl = mainItem.images.featured || mainItem.images.icon || mainItem.images.smallIcon;
+                }
+
+                if (!imageUrl) return null; // Skip if no image found
+
+                // 4. Resolve Rarity
+                // Bundles might not have a direct rarity, usually take from first item or default
+                const rarityId = mainItem.rarity?.value || 'common';
+                const rarityName = mainItem.rarity?.displayValue || 'Common';
+
+                // 5. Resolve Section
+                // Use the layout name if available, otherwise the injected section key
+                let sectionName = entry.layout?.name || entry._sectionName || 'Featured';
+                let sectionId = entry.layout?.id || sectionName.toLowerCase().replace(/\s+/g, '-');
+
+                // Clean up section names for better grouping
+                if(sectionId.includes('jam') || sectionName.includes('Jam')) {
+                    sectionName = 'Jam Tracks';
+                    sectionId = 'jam-tracks';
+                }
+
+                return {
+                    id: entry.offerId || mainItem.id,
+                    displayName: name,
+                    displayDescription: desc || '',
+                    price: {
+                        finalPrice: entry.finalPrice,
+                        regularPrice: entry.regularPrice
+                    },
+                    rarity: {
+                        id: rarityId,
+                        name: rarityName
+                    },
+                    displayAssets: [{
+                        url: imageUrl,
+                        background: mainItem.images.background
+                    }],
+                    section: {
+                        id: sectionId,
+                        name: sectionName
+                    },
+                    banner: entry.banner ? { value: entry.banner.value, intensity: entry.banner.intensity } : undefined,
+                    firstRelease: mainItem.introduction ? {
+                        season: mainItem.introduction.season,
+                        chapter: mainItem.introduction.chapter
+                    } : undefined
+                };
+            } catch (e) {
+                return null;
+            }
+        }).filter((item): item is ShopItem => item !== null);
+
     } catch (error) {
-        console.error("Failed to fetch shop from .io:", error);
+        console.error("Failed to fetch shop:", error);
         return [];
     }
 };

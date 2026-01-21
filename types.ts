@@ -1,5 +1,4 @@
 
-
 export interface GeneratedImage {
   id: string;
   url: string;
@@ -381,4 +380,42 @@ export interface MapData {
         pois: string;
     };
     pois: MapPOI[];
+}
+
+// --- TACTICAL OS TYPES ---
+
+export interface LoadoutAnalysis {
+    score: number;
+    viability: 'META' | 'COMPETITIVE' | 'CASUAL' | 'TRASH';
+    identifiedItems: string[];
+    strengths: string[];
+    weaknesses: string[];
+    advice: string;
+}
+
+export interface DropStrategy {
+    poi: string;
+    threatLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'EXTREME';
+    rotationPath: string[];
+    lootPriority: string[];
+    farmingGuide: string;
+    earlyGamePlan: string;
+}
+
+// --- CREATIVE ARCHITECT TYPES ---
+
+export interface CreativeDevice {
+    name: string;
+    settings: { key: string; value: string }[];
+    location: string;
+}
+
+export interface CreativeBlueprint {
+    title: string;
+    description: string;
+    islandTemplate: string;
+    memoryUsage: string;
+    devices: CreativeDevice[];
+    flowSummary: string;
+    codeSnippet?: string; // Verse code snippet
 }

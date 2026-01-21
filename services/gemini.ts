@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Modality, Type } from "@google/genai";
-import { ThumbnailCategory, ThumbnailConfig, AdvancedConfig, LightingStyle, CameraAngle, CompositionMode, FortnitePOI, FortniteWeapon, ItemRarity, GraphicsMode, AspectRatio, ActionType, SkinVibe, FortniteRank, FortniteSeason, BrandConfig, EsportsMascot, LogoStyle } from "../types";
+import { ThumbnailCategory, ThumbnailConfig, AdvancedConfig, LightingStyle, CameraAngle, CompositionMode, FortnitePOI, FortniteWeapon, ItemRarity, GraphicsMode, AspectRatio, ActionType, SkinVibe, FortniteRank, FortniteSeason, BrandConfig, EsportsMascot, LogoStyle, LoadoutAnalysis, DropStrategy, CreativeBlueprint } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -141,6 +141,7 @@ export const analyzeBrandDeeply = async (name: string): Promise<{
     strategy: string;
     sponsors: string[];
     roles: string[];
+    evolutionTier: number;
 }> => {
     try {
         const response = await ai.models.generateContent({
@@ -159,6 +160,7 @@ export const analyzeBrandDeeply = async (name: string): Promise<{
             - strategy: One sentence explaining why this identity fits the name.
             - sponsors: 2 fake, cool sounding sponsor names that fit the vibe (e.g. "Vertex Energy", "Flux Peripherals").
             - roles: 4 Discord role names ranked from highest to lowest (e.g. ["Commander", "Elite", "Member", "Recruit"]).
+            - evolutionTier: Choose 1 for "Clean/Simple/Rookie" or 2 for "Pro/Complex/3D" based on how "big budget" the name sounds.
             `,
             config: {
                 responseMimeType: "application/json"
@@ -177,7 +179,8 @@ export const analyzeBrandDeeply = async (name: string): Promise<{
             archetype: json.archetype || 'The Contenders',
             strategy: json.strategy || 'A fierce identity for a competitive team.',
             sponsors: json.sponsors || ['HyperTech', 'GamerFuel'],
-            roles: json.roles || ['Owner', 'Captain', 'Player', 'Fan']
+            roles: json.roles || ['Owner', 'Captain', 'Player', 'Fan'],
+            evolutionTier: json.evolutionTier || 1
         };
     } catch (e) {
         console.error("Deep Analysis Error", e);
@@ -185,7 +188,8 @@ export const analyzeBrandDeeply = async (name: string): Promise<{
             mascot: 'Wolf', style: 'Vector Illustration', element: 'Fire', 
             primaryColor: '#FF0000', secondaryColor: '#000000', accentColor: '#FFFFFF',
             vibe: 'Default', archetype: 'Standard', strategy: 'Default fallback.',
-            sponsors: ['Sponsor 1', 'Sponsor 2'], roles: ['Admin', 'Mod', 'Member', 'Guest']
+            sponsors: ['Sponsor 1', 'Sponsor 2'], roles: ['Admin', 'Mod', 'Member', 'Guest'],
+            evolutionTier: 1
         };
     }
 }
@@ -234,14 +238,29 @@ export const generateThumbnailImage = async (prompt: string, referenceImage: str
   try {
     const parts: any[] = [{ text: prompt }];
     
+    // Robust Reference Image Handling
     if (referenceImage) {
-        const cleanBase64 = referenceImage.split(',')[1] || referenceImage;
-        parts.push({
-            inlineData: {
-                mimeType: 'image/png',
-                data: cleanBase64
-            }
-        });
+        // Attempt to extract real MIME type from data URL
+        const matches = referenceImage.match(/^data:(.+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+            const mimeType = matches[1];
+            const data = matches[2];
+            parts.push({
+                inlineData: {
+                    mimeType: mimeType,
+                    data: data
+                }
+            });
+        } else {
+             // Fallback for raw base64 or unexpected formats
+             const cleanBase64 = referenceImage.split(',')[1] || referenceImage;
+             parts.push({
+                inlineData: {
+                    mimeType: 'image/png', // Default fallback
+                    data: cleanBase64
+                }
+            });
+        }
     }
 
     // Determine Aspect Ratio
@@ -426,6 +445,173 @@ export const generateHypeVoiceover = async (lines: VoiceLine[]): Promise<string>
         console.error("Audio Generation Error:", error);
         throw error;
     }
+}
+
+/**
+ * GENERATE CAT SOUND (NEURAL AUDIO)
+ */
+export const generateCatSound = async (prompt: string): Promise<string> => {
+    // We reuse the TTS engine but hijack it for non-verbal sound generation
+    // 'Puck' often has good high pitch range for cat sounds
+    return generateHypeVoiceover([{ speaker: 'Puck', text: prompt }]);
+}
+
+/**
+ * TACTICAL OS: INVENTORY VISION (GEMINI 3 FLASH MULTIMODAL)
+ */
+export const analyzeLoadoutImage = async (base64Image: string): Promise<LoadoutAnalysis> => {
+    try {
+        const parts: any[] = [
+            { text: "Analyze this Fortnite inventory screenshot. Identify the weapons, heals, and materials. Assess the loadout's competitive viability for a ranked endgame scenario. Return a JSON object." },
+        ];
+        
+        // Handle image data
+        const matches = base64Image.match(/^data:(.+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+            parts.push({
+                inlineData: {
+                    mimeType: matches[1],
+                    data: matches[2]
+                }
+            });
+        }
+
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview", // Using Flash for fast multimodal reasoning
+            contents: { parts },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        score: { type: Type.NUMBER, description: "Viability score 0-100" },
+                        viability: { type: Type.STRING, enum: ["META", "COMPETITIVE", "CASUAL", "TRASH"] },
+                        identifiedItems: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        advice: { type: Type.STRING, description: "Specific tactical advice on what to drop/pickup" }
+                    },
+                    required: ["score", "viability", "identifiedItems", "strengths", "weaknesses", "advice"]
+                }
+            }
+        });
+
+        return JSON.parse(response.text || "{}");
+    } catch (e) {
+        console.error("Loadout Analysis Error", e);
+        throw new Error("Failed to analyze loadout image.");
+    }
+}
+
+/**
+ * TACTICAL OS: DROP COMMANDER (GEMINI 3 FLASH REASONING)
+ */
+export const generateDropStrategy = async (poi: string): Promise<DropStrategy> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: `Generate a pro-level drop strategy for the Fortnite POI: "${poi}". Assume Chapter 6 / Current Meta.
+            
+            Return JSON with:
+            - threatLevel: [LOW, MEDIUM, HIGH, EXTREME]
+            - rotationPath: 3-step array of next locations to rotate to.
+            - lootPriority: 3 key items to look for at this spot.
+            - farmingGuide: 1 sentence on what material to farm here.
+            - earlyGamePlan: 1 strategic sentence for the first 2 minutes.
+            `,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        poi: { type: Type.STRING },
+                        threatLevel: { type: Type.STRING, enum: ["LOW", "MEDIUM", "HIGH", "EXTREME"] },
+                        rotationPath: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        lootPriority: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        farmingGuide: { type: Type.STRING },
+                        earlyGamePlan: { type: Type.STRING }
+                    },
+                    required: ["threatLevel", "rotationPath", "lootPriority", "farmingGuide", "earlyGamePlan"]
+                }
+            }
+        });
+        
+        return JSON.parse(response.text || "{}");
+    } catch (e) {
+        console.error("Drop Strategy Error", e);
+         throw new Error("Failed to generate drop strategy.");
+    }
+}
+
+/**
+ * CREATIVE ARCHITECT: BLUEPRINT ENGINE
+ */
+export const generateCreativeBlueprint = async (concept: string): Promise<CreativeBlueprint> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: `Create a technical Fortnite Creative map design for the concept: "${concept}".
+            
+            Return JSON with:
+            - title: Cool map name.
+            - description: Short description.
+            - islandTemplate: Best base island to start with.
+            - memoryUsage: Estimated memory usage (e.g. "Low (15k)").
+            - devices: Array of 3-5 critical devices needed. Each device has a name, location, and array of key settings (key/value pairs).
+            - flowSummary: A sentence describing the game loop.
+            - codeSnippet: A fake verse code snippet for a key mechanic.
+            `,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        title: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        islandTemplate: { type: Type.STRING },
+                        memoryUsage: { type: Type.STRING },
+                        devices: { 
+                            type: Type.ARRAY, 
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    name: { type: Type.STRING },
+                                    location: { type: Type.STRING },
+                                    settings: {
+                                        type: Type.ARRAY,
+                                        items: {
+                                            type: Type.OBJECT,
+                                            properties: {
+                                                key: { type: Type.STRING },
+                                                value: { type: Type.STRING }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        flowSummary: { type: Type.STRING },
+                        codeSnippet: { type: Type.STRING }
+                    }
+                }
+            }
+        });
+        
+        return JSON.parse(response.text || "{}");
+    } catch (e) {
+        console.error("Blueprint Error", e);
+        throw new Error("Failed to generate blueprint.");
+    }
+}
+
+export const generateBlueprintImage = async (concept: string): Promise<string> => {
+    return generateThumbnailImage(
+        `Top down technical blueprint schematic of a Fortnite Creative map: ${concept}. 
+        Style: Architectural Drawing, Blueprint Blue Background, White Lines, Grid Layout, Technical Annotations. 
+        High contrast, vector style.`, 
+        null, 
+        AspectRatio.SQUARE
+    );
 }
 
 // ... rest of exports (Viral Titles, etc) not modified but kept for context ...
