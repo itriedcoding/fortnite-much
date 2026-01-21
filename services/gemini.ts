@@ -127,9 +127,26 @@ export const generateBrandName = async (vibe: string): Promise<string> => {
 }
 
 /**
+ * GENERATE BRAND SLOGAN (CLAN FORGE)
+ */
+export const generateBrandSlogan = async (name: string, vibe: string): Promise<string> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: `Generate a short, hype esports slogan (max 4 words) for a team named "${name}". Vibe: ${vibe}.
+            Examples: "Always Above", "Fear the Deep", "Victory Assured", "Defy Limits".
+            Return ONLY the slogan.`
+        });
+        return response.text?.trim().replace(/"/g, '') || "Victory Forever";
+    } catch (e) {
+        return "Dominate The Game";
+    }
+}
+
+/**
  * AUTO-ANALYZE IDENTITY (CLAN FORGE)
  */
-export const analyzeBrandIdentity = async (name: string): Promise<{ mascot: string, style: string, color: string }> => {
+export const analyzeBrandIdentity = async (name: string): Promise<{ mascot: string, style: string, color: string, element: string }> => {
     try {
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
@@ -139,6 +156,7 @@ export const analyzeBrandIdentity = async (name: string): Promise<{ mascot: stri
             - mascot: Best fitting mascot from [Wolf, Knight, Spartan, Reaper, Dragon, Phoenix, Samurai, Cyborg, Tiger, Shark, Viking, Demon, Alien].
             - style: Best fitting style from [Vector Illustration, Minimalist, Chrome 3D, Glitch Cyberpunk, Vintage Badge, Neon Sign].
             - color: A cool hex color code matching the vibe (e.g. #FF0000 for aggressive, #00D4FF for tech).
+            - element: Best element from [Fire, Ice, Electric, Void, Nature, Metal, Cyber].
             `,
             config: {
                 responseMimeType: "application/json"
@@ -149,21 +167,22 @@ export const analyzeBrandIdentity = async (name: string): Promise<{ mascot: stri
         return {
             mascot: json.mascot || 'Wolf',
             style: json.style || 'Vector Illustration',
-            color: json.color || '#FF0000'
+            color: json.color || '#FF0000',
+            element: json.element || 'Fire'
         };
     } catch (e) {
         console.error("Identity Analysis Error", e);
-        return { mascot: 'Wolf', style: 'Vector Illustration', color: '#FF0000' };
+        return { mascot: 'Wolf', style: 'Vector Illustration', color: '#FF0000', element: 'Fire' };
     }
 }
 
 /**
  * GENERATE LOGO PROMPT (CLAN FORGE)
  */
-export const generateLogoPrompt = (config: BrandConfig): string => {
+export const generateLogoPrompt = (config: BrandConfig & { element: string }): string => {
     return `
       Esports Team Logo for "${config.name}".
-      Subject: A stylized ${config.mascot} head/mascot.
+      Subject: A stylized ${config.mascot} head/mascot infused with ${config.element} energy.
       Style: ${config.style}.
       Primary Colors: ${config.primaryColor} and Black/White.
       
@@ -174,6 +193,7 @@ export const generateLogoPrompt = (config: BrandConfig): string => {
       - Centered composition.
       - **BACKGROUND MUST BE SOLID WHITE (#FFFFFF)**. This is crucial for background removal.
       - No realistic photo details. Must look like a professional gaming clan logo (e.g. like G2, Liquid, Cloud9).
+      - If element is Fire, use sharp flame shapes. If Ice, use shards. If Cyber, use circuitry.
     `;
 }
 
