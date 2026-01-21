@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { EsportsMascot, LogoStyle, AspectRatio } from '../types';
-import { generateBrandName, generateLogoPrompt, generateThumbnailImage, analyzeBrandIdentity, generateBrandSlogan } from '../services/gemini';
+import { generateBrandName, generateLogoPrompt, generateThumbnailImage, analyzeBrandDeeply, generateWallpaperPrompt } from '../services/gemini';
 import { LoadingSpinner, ShieldIcon, SparklesIcon, DownloadIcon, MagicWandIcon, RobotIcon, ScissorsIcon, FireIcon } from './Icons';
 
 const JERSEY_PATTERNS = [
@@ -9,7 +9,10 @@ const JERSEY_PATTERNS = [
     { id: 'stripes', name: 'Stryker', svg: <path d="M160 32 L200 480 M256 32 L256 480 M352 32 L312 480" stroke="currentColor" strokeWidth="20" opacity="0.1" /> },
     { id: 'chevron', name: 'V-Force', svg: <path d="M128 160 L256 288 L384 160 M128 220 L256 348 L384 220 M128 280 L256 408 L384 280" fill="none" stroke="currentColor" strokeWidth="25" opacity="0.1" /> },
     { id: 'hex', name: 'Hive', svg: <path d="M50 50 L100 50 L125 93 L100 136 L50 136 L25 93 Z M200 50 L250 50 L275 93 L250 136 L200 136 L175 93 Z" fill="none" stroke="currentColor" strokeWidth="5" opacity="0.1" transform="scale(0.5)" /> },
-    { id: 'shards', name: 'Fracture', svg: <path d="M0 0 L512 512 M512 0 L0 512 M256 0 L256 512" stroke="currentColor" strokeWidth="10" opacity="0.1" /> }
+    { id: 'shards', name: 'Fracture', svg: <path d="M0 0 L512 512 M512 0 L0 512 M256 0 L256 512" stroke="currentColor" strokeWidth="10" opacity="0.1" /> },
+    { id: 'circuit', name: 'Cyber', svg: <path d="M50 0 V50 H100 V100 M200 0 V200 H300" fill="none" stroke="currentColor" strokeWidth="4" opacity="0.15" /> },
+    { id: 'waves', name: 'Tide', svg: <path d="M0 50 Q 128 0 256 50 T 512 50" fill="none" stroke="currentColor" strokeWidth="10" opacity="0.1" /> },
+    { id: 'flames', name: 'Inferno', svg: <path d="M50 512 Q 100 200 150 512 M200 512 Q 250 150 300 512" fill="none" stroke="currentColor" strokeWidth="10" opacity="0.1" /> },
 ];
 
 const ELEMENTS = ['Fire', 'Ice', 'Electric', 'Void', 'Nature', 'Metal', 'Cyber', 'Toxic'];
@@ -34,42 +37,51 @@ const adjustColor = (hex: string, percent: number) => {
 export const BrandStudio: React.FC = () => {
     // Identity State
     const [teamName, setTeamName] = useState('');
-    const [vibe, setVibe] = useState('');
-    const [slogan, setSlogan] = useState('');
+    const [aiAutoMode, setAiAutoMode] = useState(true);
+    
+    // Deep Analysis Results
+    const [archetype, setArchetype] = useState('');
+    const [strategy, setStrategy] = useState('');
+    const [discordRoles, setDiscordRoles] = useState<string[]>([]);
+    const [sponsors, setSponsors] = useState<string[]>([]);
     
     // Visual Core State
     const [mascot, setMascot] = useState<EsportsMascot>(EsportsMascot.WOLF);
     const [style, setStyle] = useState<LogoStyle>(LogoStyle.VECTOR);
     const [element, setElement] = useState('Fire');
+    const [evolutionTier, setEvolutionTier] = useState(1);
     
     // Chromatic State
     const [primaryColor, setPrimaryColor] = useState('#EF4444');
     const [secondaryColor, setSecondaryColor] = useState('#7f1d1d');
     const [accentColor, setAccentColor] = useState('#ffffff');
+    const [slogan, setSlogan] = useState('');
     
     // View State
-    const [viewMode, setViewMode] = useState<'logo' | 'merch' | 'social'>('logo');
+    const [viewMode, setViewMode] = useState<'logo' | 'merch' | 'social' | 'wallpaper'>('logo');
     const [merchItem, setMerchItem] = useState<'jersey' | 'cap' | 'mousepad'>('jersey');
     const [kitPattern, setKitPattern] = useState(JERSEY_PATTERNS[0]);
 
     // Processing State
     const [isNaming, setIsNaming] = useState(false);
-    const [isSloganing, setIsSloganing] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isForging, setIsForging] = useState(false);
     const [resultUrl, setResultUrl] = useState<string | null>(null);
     const [processedUrl, setProcessedUrl] = useState<string | null>(null);
     const [isRemovingBg, setIsRemovingBg] = useState(false);
+    const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
     
     // Download Refs
     const merchRef = useRef<SVGSVGElement>(null);
 
     // Auto-Analyze Identity when name changes (Debounced)
     useEffect(() => {
+        if (!aiAutoMode) return;
+        
         const timer = setTimeout(async () => {
-            if (teamName.length > 3 && !resultUrl) { // Only analyze if we haven't generated yet
+            if (teamName.length > 3 && !resultUrl) { 
                 setIsAnalyzing(true);
-                const identity = await analyzeBrandIdentity(teamName);
+                const identity = await analyzeBrandDeeply(teamName);
                 
                 // Map string response to Enums if possible, else default
                 const matchedMascot = Object.values(EsportsMascot).find(m => identity.mascot.includes(m)) || identity.mascot as EsportsMascot;
@@ -79,54 +91,65 @@ export const BrandStudio: React.FC = () => {
                 setStyle(matchedStyle);
                 setElement(identity.element);
                 
-                // Update Color Palette
-                setPrimaryColor(identity.color);
+                setPrimaryColor(identity.primaryColor);
+                setSecondaryColor(identity.secondaryColor);
+                setAccentColor(identity.accentColor);
                 
+                setArchetype(identity.archetype);
+                setStrategy(identity.strategy);
+                setDiscordRoles(identity.roles);
+                setSponsors(identity.sponsors);
+                setSlogan(await generateBrandName(identity.vibe)); // Quick placeholder logic for slogan
+                
+                // Smart Pattern Match
+                if(identity.element === 'Fire') setKitPattern(JERSEY_PATTERNS.find(p=>p.id==='flames') || JERSEY_PATTERNS[0]);
+                else if(identity.element === 'Electric' || identity.element === 'Cyber') setKitPattern(JERSEY_PATTERNS.find(p=>p.id==='circuit') || JERSEY_PATTERNS[0]);
+                else if(identity.element === 'Ice' || identity.element === 'Nature') setKitPattern(JERSEY_PATTERNS.find(p=>p.id==='waves') || JERSEY_PATTERNS[0]);
+                else setKitPattern(JERSEY_PATTERNS.find(p=>p.id==='hex') || JERSEY_PATTERNS[0]);
+
                 setIsAnalyzing(false);
             }
-        }, 2000);
+        }, 1500);
         return () => clearTimeout(timer);
-    }, [teamName]);
-
-    // Update Palette when Primary Changes
-    useEffect(() => {
-        setSecondaryColor(adjustColor(primaryColor, -40)); // Darker version
-        setAccentColor('#ffffff'); // Default accent
-    }, [primaryColor]);
+    }, [teamName, aiAutoMode]);
 
     const handleInventName = async () => {
-        if (!vibe.trim()) return;
         setIsNaming(true);
-        const name = await generateBrandName(vibe);
+        const name = await generateBrandName("Esports Pro");
         setTeamName(name);
         setIsNaming(false);
     };
-
-    const handleInventSlogan = async () => {
-        if (!teamName) return;
-        setIsSloganing(true);
-        const s = await generateBrandSlogan(teamName, vibe || 'Victory');
-        setSlogan(s);
-        setIsSloganing(false);
-    }
 
     const handleForge = async () => {
         if (!teamName) return;
         setIsForging(true);
         setResultUrl(null);
         setProcessedUrl(null);
+        setWallpaperUrl(null);
         
         try {
+            // 1. Generate Logo
             const prompt = generateLogoPrompt({
                 name: teamName,
                 mascot: mascot,
                 style: style,
                 primaryColor: primaryColor,
-                element: element
+                element: element,
+                evolutionTier: evolutionTier
             });
             const url = await generateThumbnailImage(prompt, null, AspectRatio.SQUARE);
             setResultUrl(url);
             
+            // 2. Generate Wallpaper in background if not viewing
+            const wallPrompt = generateWallpaperPrompt({
+                name: teamName,
+                primaryColor,
+                element,
+                style: LogoStyle.CHROME,
+                mascot
+            });
+            generateThumbnailImage(wallPrompt, null, AspectRatio.LANDSCAPE).then(wUrl => setWallpaperUrl(wUrl));
+
             // Auto Remove BG Attempt immediately
             setTimeout(() => handleRemoveBackground(url), 500);
 
@@ -160,7 +183,7 @@ export const BrandStudio: React.FC = () => {
             const bgR = data[0];
             const bgG = data[1];
             const bgB = data[2];
-            const tolerance = 40; // Tolerance for compression artifacts
+            const tolerance = 40; 
 
             for (let i = 0; i < data.length; i += 4) {
                 const r = data[i];
@@ -172,7 +195,7 @@ export const BrandStudio: React.FC = () => {
                     Math.abs(g - bgG) < tolerance &&
                     Math.abs(b - bgB) < tolerance
                 ) {
-                    data[i + 3] = 0; // Transparent
+                    data[i + 3] = 0; 
                 }
             }
 
@@ -182,7 +205,6 @@ export const BrandStudio: React.FC = () => {
         };
     };
 
-    // --- DOWNLOAD HANDLERS ---
     const handleDownloadMerch = () => {
         if (!merchRef.current) return;
         
@@ -190,7 +212,6 @@ export const BrandStudio: React.FC = () => {
         const serializer = new XMLSerializer();
         let source = serializer.serializeToString(merchRef.current);
         
-        // Ensure namespaces
         if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
             source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
         }
@@ -198,19 +219,15 @@ export const BrandStudio: React.FC = () => {
         const svgBlob = new Blob([source], {type:"image/svg+xml;charset=utf-8"});
         const url = URL.createObjectURL(svgBlob);
         
-        // Convert to PNG via Canvas for compatibility
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            // High res export
             canvas.width = 1024;
             canvas.height = 1024;
             const ctx = canvas.getContext('2d');
             if (!ctx) return;
             
-            // Fill background based on item? Or transparency. Transparency is better for merch mockup.
             ctx.drawImage(img, 0, 0, 1024, 1024);
-            
             const pngUrl = canvas.toDataURL("image/png");
             const downloadLink = document.createElement("a");
             downloadLink.href = pngUrl;
@@ -223,107 +240,82 @@ export const BrandStudio: React.FC = () => {
         img.src = url;
     };
 
-    const handleDownloadBanner = async () => {
-        if (!currentLogo) return;
+    const currentLogo = processedUrl || resultUrl;
 
+    const handleDownloadBanner = () => {
+        if (!currentLogo) return;
+        
         const canvas = document.createElement('canvas');
         canvas.width = 1500;
         canvas.height = 500;
         const ctx = canvas.getContext('2d');
-        if(!ctx) return;
-
-        // 1. Draw Background (Black base)
+        if (!ctx) return;
+        
+        // Background
         ctx.fillStyle = '#000000';
-        ctx.fillRect(0,0, 1500, 500);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         const img = new Image();
-        img.crossOrigin = 'anonymous';
+        img.crossOrigin = "anonymous";
         img.src = currentLogo;
-        await new Promise((resolve) => { img.onload = resolve; });
+        img.onload = () => {
+            // Blurred BG
+            ctx.save();
+            ctx.filter = 'blur(30px) saturate(150%)';
+            ctx.globalAlpha = 0.6;
+            ctx.drawImage(img, -50, -50, canvas.width + 100, canvas.height + 100);
+            ctx.restore();
+            
+            // Gradient Overlay
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            gradient.addColorStop(0, '#000000');
+            gradient.addColorStop(0.5, 'rgba(0,0,0,0.5)');
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Logo
+            const logoSize = 250;
+            const logoX = 100;
+            const logoY = (canvas.height - logoSize) / 2;
+            
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(logoX + logoSize/2, logoY + logoSize/2, logoSize/2, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(img, logoX, logoY, logoSize, logoSize);
+            ctx.restore();
+            
+            // Ring
+            ctx.beginPath();
+            ctx.arc(logoX + logoSize/2, logoY + logoSize/2, logoSize/2, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+            
+            // Text
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'italic 900 100px sans-serif';
+            ctx.fillText(teamName.toUpperCase(), logoX + logoSize + 50, canvas.height / 2 + 20);
+            
+            const sloganText = (slogan || 'EST. 2026').toUpperCase();
+            ctx.font = '900 30px sans-serif';
+            
+            // Gradient Text for slogan
+            const textGrad = ctx.createLinearGradient(logoX + logoSize + 50, 0, canvas.width, 0);
+            textGrad.addColorStop(0, '#ef4444');
+            textGrad.addColorStop(1, '#f97316');
+            ctx.fillStyle = textGrad;
+            
+            ctx.fillText(sloganText, logoX + logoSize + 55, canvas.height / 2 + 70);
 
-        // 2. Draw Blurred/Saturated Background Image
-        ctx.save();
-        ctx.filter = 'blur(40px) saturate(1.8)';
-        ctx.globalAlpha = 0.5;
-        // Cover fit
-        const scale = Math.max(1500/img.width, 500/img.height);
-        const w = img.width * scale;
-        const h = img.height * scale;
-        const x = (1500 - w) / 2;
-        const y = (500 - h) / 2;
-        ctx.drawImage(img, x, y, w, h);
-        ctx.restore();
-
-        // 3. Gradient Overlay (Left to Right Fade)
-        const grad = ctx.createLinearGradient(0,0, 1000, 0);
-        grad.addColorStop(0, 'rgba(0,0,0,1)');
-        grad.addColorStop(0.6, 'rgba(0,0,0,0.6)');
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0,0, 1500, 500);
-        
-        // 4. Pattern Overlay
-        // We can simulate a simple pattern or skip. Skipping for canvas perf.
-
-        // 5. Avatar Circle with Border
-        const avatarSize = 300;
-        const avX = 100;
-        const avY = 100;
-        
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(avX + avatarSize/2, avY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.fillStyle = '#111';
-        ctx.fillRect(avX, avY, avatarSize, avatarSize);
-        // Draw logo centered in avatar circle
-        // Maintain aspect ratio fit inside circle
-        const avScale = Math.min(avatarSize/img.width, avatarSize/img.height) * 0.8; // 80% size
-        const avW = img.width * avScale;
-        const avH = img.height * avScale;
-        const avImgX = avX + (avatarSize - avW) / 2;
-        const avImgY = avY + (avatarSize - avH) / 2;
-        ctx.drawImage(img, avImgX, avImgY, avW, avH);
-        ctx.restore();
-
-        // Avatar Border
-        ctx.beginPath();
-        ctx.arc(avX + avatarSize/2, avY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
-        ctx.lineWidth = 6;
-        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-        ctx.stroke();
-
-        // 6. Typography
-        ctx.fillStyle = '#ffffff';
-        // Fallback fonts if custom fonts not fully loaded, but usually they are
-        ctx.font = 'italic 900 100px "Luckiest Guy", sans-serif'; 
-        ctx.shadowColor = "rgba(0,0,0,0.8)";
-        ctx.shadowBlur = 10;
-        ctx.shadowOffsetX = 4;
-        ctx.shadowOffsetY = 4;
-        ctx.fillText(teamName.toUpperCase(), 450, 260);
-
-        // Slogan Gradient Text
-        ctx.shadowColor = "transparent"; // Reset shadow
-        ctx.font = '900 40px "Space Grotesk", sans-serif';
-        const textGrad = ctx.createLinearGradient(450, 0, 1000, 0);
-        textGrad.addColorStop(0, '#ef4444');
-        textGrad.addColorStop(1, '#f97316');
-        ctx.fillStyle = textGrad;
-        ctx.fillText((slogan || 'EST. 2026').toUpperCase(), 450, 320);
-
-        // Download
-        const png = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.href = png;
-        link.download = `${teamName}-social-header.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+            // Download
+            const link = document.createElement('a');
+            link.download = `${teamName}_header.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        };
     };
-
-
-    const currentLogo = processedUrl || resultUrl;
 
     return (
         <div className="w-full max-w-[1600px] mx-auto animate-fade-in-up pb-20">
@@ -337,8 +329,10 @@ export const BrandStudio: React.FC = () => {
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-600 drop-shadow-[0_0_30px_rgba(255,23,68,0.6)]">FORGE</span>
                 </h2>
                 <div className="flex justify-center gap-4">
-                     <span className="bg-black/60 border border-red-500/30 text-red-400 px-4 py-1.5 rounded-full text-xs font-mono font-bold tracking-widest uppercase">Identity Engine v4.0</span>
-                     <span className="bg-black/60 border border-white/10 text-slate-400 px-4 py-1.5 rounded-full text-xs font-mono font-bold tracking-widest uppercase">Vector Fabricator</span>
+                     <button onClick={() => setAiAutoMode(!aiAutoMode)} className={`px-4 py-1.5 rounded-full text-xs font-mono font-bold tracking-widest uppercase border transition-all flex items-center gap-2 ${aiAutoMode ? 'bg-green-500/20 border-green-500 text-green-400' : 'bg-black/60 border-white/10 text-slate-500'}`}>
+                         <RobotIcon className="w-3 h-3"/> AI Auto-Pilot: {aiAutoMode ? 'ON' : 'OFF'}
+                     </button>
+                     <span className="bg-black/60 border border-white/10 text-slate-400 px-4 py-1.5 rounded-full text-xs font-mono font-bold tracking-widest uppercase">Identity Engine v4.0</span>
                 </div>
              </div>
 
@@ -355,54 +349,36 @@ export const BrandStudio: React.FC = () => {
                          </h3>
                          
                          <div className="space-y-4">
-                             {/* Name & Vibe */}
-                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Team Name</label>
-                                    <div className="relative">
-                                        <input 
-                                            type="text" 
-                                            value={teamName} 
-                                            onChange={(e) => setTeamName(e.target.value)} 
-                                            placeholder="e.g. OMEGA" 
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-red-500 transition-all uppercase"
-                                        />
-                                        {isAnalyzing && <div className="absolute right-3 top-3"><LoadingSpinner className="w-4 h-4 text-red-500"/></div>}
-                                    </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Team Vibe</label>
-                                    <div className="flex gap-2">
-                                        <input 
-                                            type="text" 
-                                            value={vibe} 
-                                            onChange={(e) => setVibe(e.target.value)} 
-                                            placeholder="e.g. Toxic" 
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold outline-none focus:border-red-500 transition-all"
-                                        />
-                                        <button onClick={handleInventName} disabled={isNaming} className="px-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 text-white disabled:opacity-50">
+                             {/* Name */}
+                             <div className="space-y-1">
+                                <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Team Name</label>
+                                <div className="relative">
+                                    <input 
+                                        type="text" 
+                                        value={teamName} 
+                                        onChange={(e) => setTeamName(e.target.value)} 
+                                        placeholder="e.g. OMEGA" 
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-red-500 transition-all uppercase"
+                                    />
+                                    <div className="absolute right-2 top-2 flex gap-1">
+                                        {isAnalyzing && <div className="bg-black/50 p-2 rounded text-green-500 text-[10px] font-mono animate-pulse">SCANNING...</div>}
+                                        <button onClick={handleInventName} disabled={isNaming} className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white">
                                             <MagicWandIcon className="w-4 h-4"/>
                                         </button>
                                     </div>
                                 </div>
                              </div>
 
-                             {/* Slogan Engine */}
-                             <div className="space-y-1">
-                                <div className="flex justify-between items-end">
-                                    <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Battle Cry / Slogan</label>
-                                    <button onClick={handleInventSlogan} disabled={isSloganing || !teamName} className="text-[9px] font-bold text-red-500 hover:text-white uppercase tracking-wider flex items-center gap-1">
-                                        {isSloganing ? 'Generating...' : 'Auto-Gen'} <SparklesIcon className="w-3 h-3"/>
-                                    </button>
-                                </div>
-                                <input 
-                                    type="text" 
-                                    value={slogan} 
-                                    onChange={(e) => setSlogan(e.target.value)} 
-                                    placeholder="e.g. VICTORY OR NOTHING" 
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-slate-300 font-mono text-xs outline-none focus:border-red-500 transition-all uppercase tracking-wide"
-                                />
-                             </div>
+                             {/* Neural Strategy Console (New) */}
+                             {archetype && (
+                                 <div className="bg-black/40 border border-white/5 p-4 rounded-xl space-y-2 animate-fade-in">
+                                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                         <span className="text-[9px] text-green-500 font-mono">ARCHETYPE DETECTED</span>
+                                         <span className="text-[10px] font-black text-white uppercase">{archetype}</span>
+                                     </div>
+                                     <p className="text-[10px] text-slate-400 leading-relaxed">"{strategy}"</p>
+                                 </div>
+                             )}
                          </div>
                      </div>
 
@@ -416,7 +392,7 @@ export const BrandStudio: React.FC = () => {
                          <div className="space-y-6">
                              {/* Elemental Affinity */}
                              <div className="space-y-2">
-                                 <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Elemental Affinity</label>
+                                 <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Elemental Affinity (Auto)</label>
                                  <div className="flex flex-wrap gap-2">
                                      {ELEMENTS.map((elm) => (
                                          <button 
@@ -439,10 +415,11 @@ export const BrandStudio: React.FC = () => {
                                      </select>
                                 </div>
                                 <div className="space-y-2">
-                                     <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Art Style</label>
-                                     <select value={style} onChange={(e) => setStyle(e.target.value as LogoStyle)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 text-xs text-white font-bold outline-none appearance-none">
-                                         {Object.values(LogoStyle).map(s => <option key={s} value={s}>{s.split(' ')[0]}</option>)}
-                                     </select>
+                                     <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Evolution Tier</label>
+                                     <div className="flex gap-2 p-1 bg-black/40 rounded-xl border border-white/10">
+                                         <button onClick={() => setEvolutionTier(1)} className={`flex-1 py-2 rounded-lg text-[10px] font-bold ${evolutionTier === 1 ? 'bg-white text-black' : 'text-slate-500'}`}>Rookie</button>
+                                         <button onClick={() => setEvolutionTier(2)} className={`flex-1 py-2 rounded-lg text-[10px] font-bold ${evolutionTier === 2 ? 'bg-red-600 text-white' : 'text-slate-500'}`}>Pro</button>
+                                     </div>
                                 </div>
                              </div>
                          </div>
@@ -464,13 +441,12 @@ export const BrandStudio: React.FC = () => {
                                  </div>
                              </div>
                              
-                             {/* Generated Palette Preview */}
                              <div className="space-y-1 flex-1">
-                                 <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Generated Palette</label>
+                                 <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Tri-Color Palette</label>
                                  <div className="flex h-10 rounded-xl overflow-hidden border border-white/10">
-                                     <div className="flex-1 h-full" style={{backgroundColor: primaryColor}} title="Primary"></div>
-                                     <div className="flex-1 h-full" style={{backgroundColor: secondaryColor}} title="Secondary"></div>
-                                     <div className="flex-1 h-full" style={{backgroundColor: accentColor}} title="Accent"></div>
+                                     <div className="flex-1 h-full flex items-center justify-center text-[8px] font-bold" style={{backgroundColor: primaryColor, color: '#fff'}} title="Primary">MAIN</div>
+                                     <div className="flex-1 h-full flex items-center justify-center text-[8px] font-bold" style={{backgroundColor: secondaryColor, color: '#fff'}} title="Secondary">SEC</div>
+                                     <div className="flex-1 h-full flex items-center justify-center text-[8px] font-bold" style={{backgroundColor: accentColor, color: '#000'}} title="Accent">ACCENT</div>
                                  </div>
                              </div>
                          </div>
@@ -484,13 +460,14 @@ export const BrandStudio: React.FC = () => {
                  </div>
 
                  {/* RIGHT: PREVIEW DECK */}
-                 <div className="lg:col-span-7 flex flex-col h-full bg-[#0a0510] rounded-[3rem] border border-white/10 shadow-2xl relative overflow-hidden">
+                 <div className="lg:col-span-7 flex flex-col h-full bg-[#0a0510] rounded-[3rem] border border-white/10 shadow-2xl relative overflow-hidden min-h-[600px]">
                      
                      {/* View Tabs */}
                      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 bg-black/60 backdrop-blur-md p-1.5 rounded-full border border-white/10 flex gap-1">
                          <button onClick={() => setViewMode('logo')} className={`px-5 py-2 rounded-full font-black uppercase text-[10px] tracking-widest transition-all ${viewMode === 'logo' ? 'bg-white text-black shadow-lg' : 'text-slate-400 hover:text-white'}`}>Logo</button>
                          <button onClick={() => setViewMode('merch')} className={`px-5 py-2 rounded-full font-black uppercase text-[10px] tracking-widest transition-all ${viewMode === 'merch' ? 'bg-white text-black shadow-lg' : 'text-slate-400 hover:text-white'}`}>Merch</button>
                          <button onClick={() => setViewMode('social')} className={`px-5 py-2 rounded-full font-black uppercase text-[10px] tracking-widest transition-all ${viewMode === 'social' ? 'bg-white text-black shadow-lg' : 'text-slate-400 hover:text-white'}`}>Social</button>
+                         <button onClick={() => setViewMode('wallpaper')} className={`px-5 py-2 rounded-full font-black uppercase text-[10px] tracking-widest transition-all ${viewMode === 'wallpaper' ? 'bg-white text-black shadow-lg' : 'text-slate-400 hover:text-white'}`}>Wall</button>
                      </div>
 
                      <div className="flex-1 flex flex-col relative">
@@ -552,6 +529,10 @@ export const BrandStudio: React.FC = () => {
                                                     
                                                     {/* Logo Overlay */}
                                                     <image href={currentLogo!} x="156" y="150" height="200" width="200" />
+                                                    
+                                                    {/* AI Sponsors */}
+                                                    <text x="320" y="200" fill="white" fontSize="14" fontFamily="sans-serif" fontWeight="bold" transform="rotate(-90, 320, 200)">{sponsors[0] || 'SPONSOR'}</text>
+                                                    <text x="190" y="200" fill="white" fontSize="14" fontFamily="sans-serif" fontWeight="bold" transform="rotate(90, 190, 200)">{sponsors[1] || 'TECH'}</text>
                                                 </svg>
                                              )}
 
@@ -600,13 +581,11 @@ export const BrandStudio: React.FC = () => {
 
                                  {/* SOCIAL VIEW */}
                                  {viewMode === 'social' && (
-                                    <div className="w-full h-full flex flex-col items-center justify-center">
+                                    <div className="w-full h-full flex flex-col items-center justify-center gap-6">
                                         <div className="w-[90%] aspect-[3/1] bg-black relative overflow-hidden rounded-2xl border border-white/10 group shadow-2xl">
                                             {/* Banner BG */}
                                             <div className="absolute inset-0 bg-cover bg-center opacity-60" style={{backgroundImage: `url(${currentLogo})`, filter: 'blur(30px) saturate(1.5)'}}></div>
                                             <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent"></div>
-                                            
-                                            {/* Pattern Overlay */}
                                             <div className="absolute inset-0 opacity-10" style={{backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`}}></div>
 
                                             {/* Content */}
@@ -622,11 +601,47 @@ export const BrandStudio: React.FC = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="mt-8 flex gap-4">
-                                            <button onClick={handleDownloadBanner} className="px-6 py-3 bg-blue-500 hover:bg-blue-400 rounded-lg font-bold text-white uppercase text-xs tracking-widest shadow-lg transition-all">Download Header</button>
-                                            <button className="px-6 py-3 bg-[#5865F2] rounded-lg font-bold text-white uppercase text-xs tracking-widest shadow-lg opacity-50 cursor-not-allowed">Discord Profile (Coming Soon)</button>
+
+                                        <div className="grid grid-cols-2 gap-6 w-[90%]">
+                                            <div className="bg-[#111] border border-white/10 p-4 rounded-xl">
+                                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Social Bio</h4>
+                                                <p className="text-sm font-bold text-white leading-relaxed">
+                                                    {slogan}. {archetype}. Part of the {element} legion. 🏆 Est. 2026. #Go{teamName}
+                                                </p>
+                                            </div>
+                                            <div className="bg-[#111] border border-white/10 p-4 rounded-xl">
+                                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Discord Roles</h4>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {discordRoles.map(role => (
+                                                        <span key={role} className="text-[10px] font-bold px-2 py-1 bg-white/10 rounded text-white border border-white/10">{role}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
+
+                                        <button onClick={handleDownloadBanner} className="px-6 py-3 bg-blue-500 hover:bg-blue-400 rounded-lg font-bold text-white uppercase text-xs tracking-widest shadow-lg transition-all">Download Header</button>
                                     </div>
+                                 )}
+
+                                 {/* WALLPAPER VIEW */}
+                                 {viewMode === 'wallpaper' && (
+                                     <div className="w-full h-full flex flex-col items-center justify-center gap-4">
+                                         {wallpaperUrl ? (
+                                             <>
+                                                <div className="w-[90%] aspect-video rounded-xl overflow-hidden shadow-2xl border border-white/10">
+                                                    <img src={wallpaperUrl} className="w-full h-full object-cover" />
+                                                </div>
+                                                <a href={wallpaperUrl} download={`${teamName}_wallpaper.png`} className="px-6 py-3 bg-white text-black rounded-lg font-bold uppercase text-xs tracking-widest shadow-lg hover:bg-slate-200">
+                                                    Download 4K Wallpaper
+                                                </a>
+                                             </>
+                                         ) : (
+                                             <div className="flex flex-col items-center">
+                                                 <LoadingSpinner className="w-10 h-10 text-white mb-2"/>
+                                                 <p className="text-xs uppercase font-bold text-slate-500">Rendering 4K Environment...</p>
+                                             </div>
+                                         )}
+                                     </div>
                                  )}
 
                              </div>

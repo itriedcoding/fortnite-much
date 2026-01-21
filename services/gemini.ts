@@ -127,36 +127,38 @@ export const generateBrandName = async (vibe: string): Promise<string> => {
 }
 
 /**
- * GENERATE BRAND SLOGAN (CLAN FORGE)
+ * DEEP BRAND ANALYSIS (CLAN FORGE)
  */
-export const generateBrandSlogan = async (name: string, vibe: string): Promise<string> => {
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `Generate a short, hype esports slogan (max 4 words) for a team named "${name}". Vibe: ${vibe}.
-            Examples: "Always Above", "Fear the Deep", "Victory Assured", "Defy Limits".
-            Return ONLY the slogan.`
-        });
-        return response.text?.trim().replace(/"/g, '') || "Victory Forever";
-    } catch (e) {
-        return "Dominate The Game";
-    }
-}
-
-/**
- * AUTO-ANALYZE IDENTITY (CLAN FORGE)
- */
-export const analyzeBrandIdentity = async (name: string): Promise<{ mascot: string, style: string, color: string, element: string }> => {
+export const analyzeBrandDeeply = async (name: string): Promise<{
+    mascot: string;
+    style: string;
+    element: string;
+    primaryColor: string;
+    secondaryColor: string;
+    accentColor: string;
+    vibe: string;
+    archetype: string;
+    strategy: string;
+    sponsors: string[];
+    roles: string[];
+}> => {
     try {
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
-            contents: `Analyze the esports team name "${name}" and suggest the best visual identity.
+            contents: `Analyze the esports team name "${name}" and construct a complete visual identity and community structure.
             
             Return a JSON object with:
-            - mascot: Best fitting mascot from [Wolf, Knight, Spartan, Reaper, Dragon, Phoenix, Samurai, Cyborg, Tiger, Shark, Viking, Demon, Alien].
+            - mascot: Best fitting mascot from [Wolf, Knight, Spartan, Reaper, Dragon, Phoenix, Samurai, Cyborg, Tiger, Shark, Viking, Demon, Alien, Fox, Bear].
             - style: Best fitting style from [Vector Illustration, Minimalist, Chrome 3D, Glitch Cyberpunk, Vintage Badge, Neon Sign].
-            - color: A cool hex color code matching the vibe (e.g. #FF0000 for aggressive, #00D4FF for tech).
-            - element: Best element from [Fire, Ice, Electric, Void, Nature, Metal, Cyber].
+            - element: Best element matching the name from [Fire, Ice, Electric, Void, Nature, Metal, Cyber, Toxic].
+            - primaryColor: A hex code.
+            - secondaryColor: A complementary hex code.
+            - accentColor: A highlight hex code.
+            - vibe: 1 word description (e.g. Aggressive, Stealthy).
+            - archetype: A cool title for the team identity (e.g. "The Apex Predators", "Digital Assassins").
+            - strategy: One sentence explaining why this identity fits the name.
+            - sponsors: 2 fake, cool sounding sponsor names that fit the vibe (e.g. "Vertex Energy", "Flux Peripherals").
+            - roles: 4 Discord role names ranked from highest to lowest (e.g. ["Commander", "Elite", "Member", "Recruit"]).
             `,
             config: {
                 responseMimeType: "application/json"
@@ -167,83 +169,62 @@ export const analyzeBrandIdentity = async (name: string): Promise<{ mascot: stri
         return {
             mascot: json.mascot || 'Wolf',
             style: json.style || 'Vector Illustration',
-            color: json.color || '#FF0000',
-            element: json.element || 'Fire'
+            element: json.element || 'Fire',
+            primaryColor: json.primaryColor || '#FF0000',
+            secondaryColor: json.secondaryColor || '#880000',
+            accentColor: json.accentColor || '#FFFFFF',
+            vibe: json.vibe || 'Aggressive',
+            archetype: json.archetype || 'The Contenders',
+            strategy: json.strategy || 'A fierce identity for a competitive team.',
+            sponsors: json.sponsors || ['HyperTech', 'GamerFuel'],
+            roles: json.roles || ['Owner', 'Captain', 'Player', 'Fan']
         };
     } catch (e) {
-        console.error("Identity Analysis Error", e);
-        return { mascot: 'Wolf', style: 'Vector Illustration', color: '#FF0000', element: 'Fire' };
+        console.error("Deep Analysis Error", e);
+        return { 
+            mascot: 'Wolf', style: 'Vector Illustration', element: 'Fire', 
+            primaryColor: '#FF0000', secondaryColor: '#000000', accentColor: '#FFFFFF',
+            vibe: 'Default', archetype: 'Standard', strategy: 'Default fallback.',
+            sponsors: ['Sponsor 1', 'Sponsor 2'], roles: ['Admin', 'Mod', 'Member', 'Guest']
+        };
     }
 }
 
 /**
  * GENERATE LOGO PROMPT (CLAN FORGE)
  */
-export const generateLogoPrompt = (config: BrandConfig & { element: string }): string => {
+export const generateLogoPrompt = (config: BrandConfig & { element: string, evolutionTier: number }): string => {
+    const tierDesc = config.evolutionTier === 2 
+        ? "Hyper-detailed 3D render, Esports Masterpiece, Metallic Textures, Glowing Eyes, Unreal Engine 5 style." 
+        : "Clean Vector Illustration, Flat Design, Bold Thick Outlines, Professional Esports Logo style.";
+
     return `
       Esports Team Logo for "${config.name}".
       Subject: A stylized ${config.mascot} head/mascot infused with ${config.element} energy.
       Style: ${config.style}.
+      Render Tier: ${tierDesc}
       Primary Colors: ${config.primaryColor} and Black/White.
       
       IMPORTANT COMPOSITION RULES:
-      - Vector art style with thick, bold outlines.
-      - Flat shading or cell shading.
-      - High contrast.
       - Centered composition.
-      - **BACKGROUND MUST BE SOLID WHITE (#FFFFFF)**. This is crucial for background removal.
+      - **BACKGROUND MUST BE SOLID WHITE (#FFFFFF)**.
       - No realistic photo details. Must look like a professional gaming clan logo (e.g. like G2, Liquid, Cloud9).
       - If element is Fire, use sharp flame shapes. If Ice, use shards. If Cyber, use circuitry.
     `;
 }
 
 /**
- * GENERATE VIRAL TITLES
+ * GENERATE WALLPAPER PROMPT
  */
-export const generateViralTitles = async (topic: string): Promise<string[]> => {
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `Generate 5 viral, clickbait YouTube titles for a Fortnite video about: "${topic}". 
-            Style: ALL CAPS, use punctuation like "!?". Keep them short and punchy. Return as a JSON array of strings.`
-        });
-        const text = response.text || "[]";
-        // Simple cleanup to ensure JSON parsing if markdown is included
-        const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(jsonStr);
-    } catch (e) {
-        return ["IMPOSSIBLE CHALLENGE!", "I BROKE THE GAME!", "SECRET UPDATE found?", "1000 IQ PLAY", "DON'T DO THIS!"];
-    }
-}
-
-/**
- * GENERATE TAGS
- */
-export const generateTags = async (topic: string): Promise<string> => {
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `Generate 15 comma-separated YouTube SEO tags for a Fortnite video about: "${topic}".`
-        });
-        return response.text || "Fortnite, Battle Royale, Gaming";
-    } catch (e) {
-        return "Fortnite, Battle Royale, Gaming, Chapter 6, Update";
-    }
-}
-
-/**
- * GENERATE NEWS SUMMARY (AI INTELLIGENCE)
- */
-export const summarizeNews = async (text: string): Promise<string> => {
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `Summarize this Fortnite news update in one hype sentence for a gamer. Keep it under 20 words. Text: "${text}"`
-        });
-        return response.text?.trim() || "Update details unavailable.";
-    } catch (e) {
-        return "AI Summary unavailable.";
-    }
+export const generateWallpaperPrompt = (config: BrandConfig & { element: string }): string => {
+    return `
+        Abstract Esports Wallpaper for team "${config.name}".
+        Theme: ${config.element} element.
+        Colors: ${config.primaryColor} dominant, dark background.
+        Style: 3D Abstract, Geometry, Particles, Smoke, Neon Lights.
+        Quality: 4k, High Resolution, Cinematic, Unreal Engine 5.
+        No text. Just background texture.
+    `;
 }
 
 /**
@@ -444,5 +425,56 @@ export const generateHypeVoiceover = async (lines: VoiceLine[]): Promise<string>
     } catch (error) {
         console.error("Audio Generation Error:", error);
         throw error;
+    }
+}
+
+// ... rest of exports (Viral Titles, etc) not modified but kept for context ...
+export const generateViralTitles = async (topic: string): Promise<string[]> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: `Generate 5 viral, clickbait YouTube titles for a Fortnite video about: "${topic}". 
+            Style: ALL CAPS, use punctuation like "!?". Keep them short and punchy. Return as a JSON array of strings.`
+        });
+        const text = response.text || "[]";
+        const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(jsonStr);
+    } catch (e) {
+        return ["IMPOSSIBLE CHALLENGE!", "I BROKE THE GAME!", "SECRET UPDATE found?", "1000 IQ PLAY", "DON'T DO THIS!"];
+    }
+}
+export const generateTags = async (topic: string): Promise<string> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: `Generate 15 comma-separated YouTube SEO tags for a Fortnite video about: "${topic}".`
+        });
+        return response.text || "Fortnite, Battle Royale, Gaming";
+    } catch (e) {
+        return "Fortnite, Battle Royale, Gaming, Chapter 6, Update";
+    }
+}
+export const summarizeNews = async (text: string): Promise<string> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: `Summarize this Fortnite news update in one hype sentence for a gamer. Keep it under 20 words. Text: "${text}"`
+        });
+        return response.text?.trim() || "Update details unavailable.";
+    } catch (e) {
+        return "AI Summary unavailable.";
+    }
+}
+export const generateBrandSlogan = async (name: string, vibe: string): Promise<string> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: `Generate a short, hype esports slogan (max 4 words) for a team named "${name}". Vibe: ${vibe}.
+            Examples: "Always Above", "Fear the Deep", "Victory Assured", "Defy Limits".
+            Return ONLY the slogan.`
+        });
+        return response.text?.trim().replace(/"/g, '') || "Victory Forever";
+    } catch (e) {
+        return "Dominate The Game";
     }
 }
