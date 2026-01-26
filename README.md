@@ -1,4 +1,4 @@
-# FortniteGenius - Pro AI Thumbnail Studio 🚀
+# FortniteGenius
 
 Top-tier AI Thumbnail generator designed specifically for Fortnite creators. Built with React, Tailwind CSS, and Google Gemini 2.5 (Flash & Pro).
 
